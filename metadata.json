@@ -1,0 +1,5 @@
+{
+  "name": "MapFile Serial Patcher",
+  "description": "A specialized utility to parse .MAP configuration files, extract device serial numbers (SN), and batch-replace them with new identifiers while preserving file integrity.",
+  "requestFramePermissions": []
+}
