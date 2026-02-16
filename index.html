@@ -73,6 +73,16 @@
             letter-spacing: 0.5em;
             font-weight: 900;
         }
+
+        .logo-container {
+            background: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3), inset 0 0 10px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
@@ -164,18 +174,15 @@
             const [extracted, setExtracted] = useState([]);
             const [mode, setMode] = useState('patch');
             
-            // Multi-Patch State
             const [patchJobs, setPatchJobs] = useState([{ id: Date.now(), oldSN: '', newSN: '' }]);
             
-            // Transfer State
             const [srcSN, setSrcSN] = useState('');
             const [dstSN, setDstSN] = useState('');
             
             const [isDone, setIsDone] = useState(false);
             const [dlUrl, setDlUrl] = useState(null);
 
-            // Fix Flicker: Memoize the logo URL
-            const logoUrl = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS6OLyG-fra8-3GRaTAJ6ZRB4_0Vf7ItNIYSw&s";
+            const logoUrl = "https://www.thorlux.de/assets/images/schahlled-logo-colour-c4e9ae384335c5a599815fb347bd845a.svg";
 
             useEffect(() => {
                 if (!file) return;
@@ -251,15 +258,16 @@
                         
                         <header className="flex flex-col md:flex-row items-center justify-between gap-8 border-b border-slate-800 pb-12">
                             <div className="flex flex-col items-center md:items-start gap-4">
-                                <div className="relative">
+                                <div className="logo-container">
                                     <img 
                                         src={logoUrl} 
                                         alt="SchahlLED" 
-                                        className="h-16 md:h-24 object-contain brightness-0 invert"
+                                        className="h-10 md:h-14 w-auto object-contain"
                                         loading="eager"
                                         onError={(e) => {
                                             e.target.src = "https://schahlled.de/wp-content/uploads/2021/04/schahlled-logo-white.png";
-                                            e.target.className = "h-16 md:h-24 object-contain";
+                                            e.target.parentNode.style.background = "transparent";
+                                            e.target.parentNode.style.boxShadow = "none";
                                         }}
                                     />
                                 </div>
@@ -271,7 +279,7 @@
                                     <div className="flex items-center px-3 py-1 bg-emerald-500/10 rounded-full text-[9px] font-black text-emerald-400 border border-emerald-500/20">
                                         <ShieldCheck size={10} className="mr-1.5" /> SYSTEM STABLE
                                     </div>
-                                    <div className="px-3 py-1 bg-slate-800 rounded-full text-[9px] font-black text-slate-500 uppercase">Ver. 5.1.0</div>
+                                    <div className="px-3 py-1 bg-slate-800 rounded-full text-[9px] font-black text-slate-500 uppercase">Ver. 5.3.0</div>
                                 </div>
                             </div>
                         </header>
@@ -301,11 +309,11 @@
                                             </div>
                                             <div className="flex gap-4">
                                                 <div className="font-black text-schahl-light-blue text-lg">2</div>
-                                                <p><strong className="text-white uppercase text-[10px] block mb-1">Verify</strong> Leuchte anklicken (<span className="text-white border border-white px-1 rounded">Schwarz</span> umrandet) & <strong>Verify Map</strong> klicken.</p>
+                                                <p><strong className="text-white uppercase text-[10px] block mb-1">Verify</strong> Leuchte anklicken (<span className="text-white border border-white px-2 py-0.5 rounded font-bold text-[10px]">SCHWARZ</span> umrandet) & <strong>Verify Map</strong> klicken.</p>
                                             </div>
                                             <div className="flex gap-4">
                                                 <div className="font-black text-schahl-light-blue text-lg">3</div>
-                                                <p><strong className="text-white uppercase text-[10px] block mb-1">Sync</strong> Sobald <span className="text-red-500 border border-red-500 px-1 rounded">Rot</span> umrandet, <strong>Sync Map</strong> ausführen.</p>
+                                                <p><strong className="text-white uppercase text-[10px] block mb-1">Sync</strong> Sobald <span className="text-red-500 border border-red-500 px-2 py-0.5 rounded font-bold text-[10px]">ROT</span> umrandet, <strong>Sync Map</strong> ausführen.</p>
                                             </div>
                                         </div>
                                     </div>
@@ -331,7 +339,7 @@
                                                     <button 
                                                         onClick={addPatchJob} 
                                                         disabled={patchJobs.length >= 10}
-                                                        className="flex items-center gap-2 bg-schahl-blue hover:bg-schahl-light-blue hover:text-navy text-schahl-light-blue text-[10px] font-black px-4 py-2 rounded-full transition-all disabled:opacity-30 uppercase"
+                                                        className="flex items-center gap-2 bg-schahl-blue hover:bg-schahl-light-blue hover:text-navy text-schahl-light-blue text-[10px] font-black px-4 py-2 rounded-full transition-all disabled:opacity-30 uppercase border border-schahl-light-blue/20"
                                                     >
                                                         <Plus size={14}/> Leuchte hinzufügen
                                                     </button>
@@ -339,7 +347,7 @@
                                                 
                                                 <div className="space-y-4">
                                                     {patchJobs.map((job, index) => (
-                                                        <div key={job.id} className="grid grid-cols-12 gap-4 items-end bg-[#000810]/50 p-4 rounded-2xl border border-slate-800/50 animate-in slide-in-from-left-2">
+                                                        <div key={job.id} className="grid grid-cols-12 gap-4 items-end bg-[#000810]/50 p-5 rounded-2xl border border-slate-800/50 animate-in slide-in-from-left-2 transition-all hover:border-slate-700">
                                                             <div className="col-span-1 text-[10px] font-black text-slate-700 self-center">#{index + 1}</div>
                                                             <div className="col-span-5">
                                                                 <SearchableSelect 
@@ -349,8 +357,8 @@
                                                                     onChange={v => updatePatchJob(job.id, 'oldSN', v)} 
                                                                 />
                                                             </div>
-                                                            <div className="col-span-1 flex justify-center pb-3">
-                                                                <ArrowRight size={16} className="text-slate-700" />
+                                                            <div className="col-span-1 flex justify-center pb-4 text-schahl-light-blue/30">
+                                                                <ArrowRight size={20} />
                                                             </div>
                                                             <div className="col-span-4">
                                                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">NEU (Hardware ID)</label>
@@ -358,11 +366,11 @@
                                                                     type="text" 
                                                                     value={job.newSN} 
                                                                     onChange={e => updatePatchJob(job.id, 'newSN', e.target.value.toUpperCase())} 
-                                                                    className="w-full bg-[#000810] border border-slate-800 rounded-xl px-4 py-3 font-mono text-sm text-white outline-none focus:border-schahl-light-blue transition-all" 
+                                                                    className="w-full bg-[#000810] border border-slate-800 rounded-xl px-4 py-3 font-mono text-sm text-white outline-none focus:border-schahl-light-blue transition-all placeholder:text-slate-800" 
                                                                     placeholder="XXXXXXXX" 
                                                                 />
                                                             </div>
-                                                            <div className="col-span-1 flex justify-end pb-2">
+                                                            <div className="col-span-1 flex justify-end pb-3">
                                                                 <button 
                                                                     onClick={() => removePatchJob(job.id)}
                                                                     disabled={patchJobs.length === 1}
@@ -383,7 +391,7 @@
                                                 <div className="space-y-10 relative py-4">
                                                     <SearchableSelect label="QUELLE (Von diesem Licht kopieren)" options={extracted} value={srcSN} onChange={v => {setSrcSN(v); setIsDone(false);}} />
                                                     <div className="flex justify-center -my-6 relative z-10">
-                                                        <div className="bg-schahl-yellow p-4 rounded-full border-8 border-[#001021] shadow-xl">
+                                                        <div className="bg-schahl-yellow p-4 rounded-full border-8 border-[#001021] shadow-xl animate-pulse">
                                                             <ArrowRight size={24} color="black" className="rotate-90"/>
                                                         </div>
                                                     </div>
@@ -433,7 +441,7 @@
                                             <h5 className="text-[10px] font-black uppercase tracking-widest text-white">Netzwerk Info</h5>
                                         </div>
                                         <p className="text-[11px] text-slate-400 leading-relaxed">
-                                            Das Netzwerk (Group/ID) bleibt durch den Patch unverändert erhalten. Im Commissioner müssen Sie lediglich die neue Hardware mit der logischen ID verknüpfen.
+                                            Das Netzwerk (Group/ID) bleibt durch den Patch unverändert erhalten. Im Commissioner müssen Sie lediglich die neue Hardware mit der logischen ID verknüpfen (Verify & Sync).
                                         </p>
                                     </div>
                                 </div>
@@ -441,7 +449,7 @@
                         )}
                         
                         <footer className="text-center py-20">
-                            <p className="text-[10px] font-black tracking-[1em] text-slate-700 uppercase">SchahlLED GmbH • Professional Lighting Utility</p>
+                            <p className="text-[10px] font-black tracking-[1em] text-slate-700 uppercase italic">SchahlLED GmbH • Professional Lighting Utility</p>
                         </footer>
                     </div>
                 </div>
