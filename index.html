@@ -6,7 +6,6 @@
     <title>MapFile Serial Patcher</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Babel standalone for on-the-fly TSX transpilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script type="importmap">
 {
@@ -23,18 +22,35 @@
     <style>
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #020617; /* Slate 950 */
+        background-color: #020617;
         color: #f8fafc;
         margin: 0;
       }
-      .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+      .font-mono { font-family: ui-monospace, monospace; }
+      /* Prevent layout shift during load */
+      #root:empty::after {
+        content: "App wird geladen...";
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        color: #64748b;
+        font-weight: 500;
+      }
     </style>
   </head>
   <body>
     <div id="root"></div>
-    <!-- Explicitly set the entry point for Babel -->
     <script type="text/babel" data-type="module" data-presets="react,typescript">
-      import "./index.tsx";
+      import React from 'react';
+      import { createRoot } from 'react-dom/client';
+      import App from './App.tsx';
+
+      const rootElement = document.getElementById('root');
+      if (rootElement) {
+        const root = createRoot(rootElement);
+        root.render(<App />);
+      }
     </script>
   </body>
 </html>

@@ -8,7 +8,6 @@ import {
   RefreshCw, 
   CheckCircle2,
   Cpu,
-  Copy,
   Zap,
   LayoutTemplate,
   ChevronRight,
@@ -17,8 +16,8 @@ import {
 } from 'lucide-react';
 import { SerialMatch } from './types';
 
-// Parameters specifically for Daylight Calibration Transfer
-const GH_CALIBRATION_KEYS = [
+// Critical Daylight / GH Calibration Keys
+const CALIBRATION_KEYS = [
   'flags',
   'map_daylight',
   'map_amb_env_gain', 'amb_env_gain',
@@ -43,7 +42,7 @@ const parseAttributes = (tagStr: string): Record<string, string> => {
   return attrs;
 };
 
-const reconstructPMUTag = (originalTag: string, newAttributes: Record<string, string>) => {
+const reconstructTag = (originalTag: string, newAttributes: Record<string, string>) => {
   let newTag = originalTag;
   Object.entries(newAttributes).forEach(([key, value]) => {
     const regex = new RegExp(`(${key})="([^"]*)"`);
@@ -66,19 +65,21 @@ export default function App() {
   const [extractedSNs, setExtractedSNs] = useState<SerialMatch[]>([]);
   const [mode, setMode] = useState<'patch' | 'clone'>('patch');
 
-  // Mode States
-  const [targetOldSN, setTargetOldSN] = useState<string>('');
-  const [targetNewSN, setTargetNewSN] = useState<string>('');
-  const [sourceCloneSN, setSourceCloneSN] = useState<string>('');
-  const [targetCloneSN, setTargetCloneSN] = useState<string>('');
+  // Patch Mode States
+  const [oldSN, setOldSN] = useState('');
+  const [newSN, setNewSN] = useState('');
   
-  // Network Options
-  const [updateNetwork, setUpdateNetwork] = useState<boolean>(false);
-  const [targetNetworkId, setTargetNetworkId] = useState<string>('A01');
+  // Clone Mode States
+  const [sourceSN, setSourceSN] = useState('');
+  const [targetSN, setTargetSN] = useState('');
+  
+  // Network Settings
+  const [updateNet, setUpdateNet] = useState(false);
+  const [netId, setNetId] = useState('A01');
 
-  // Process State
-  const [isProcessed, setIsProcessed] = useState(false);
-  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  // Results
+  const [isDone, setIsDone] = useState(false);
+  const [dlUrl, setDlUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!fileContent) return;
@@ -104,131 +105,134 @@ export default function App() {
     }
     const sorted = Array.from(finalMap.values()).sort((a, b) => b.count - a.count);
     setExtractedSNs(sorted);
-    if (sorted.length > 0) setTargetOldSN(sorted[0].value);
+    if (sorted.length > 0) setOldSN(sorted[0].value);
   }, [fileContent]);
 
-  const executeProcess = () => {
+  const runProcess = () => {
     if (!fileContent) return;
-    let modifiedContent = fileContent;
+    let result = fileContent;
 
     if (mode === 'patch') {
-      modifiedContent = modifiedContent.replace(/<PMU\s+([^>]+)>/g, (fullMatch, contentStr) => {
-        const attrs = parseAttributes(contentStr);
-        if (attrs['sn'] === targetOldSN) {
-          const newAttrs = { ...attrs, sn: targetNewSN };
-          if (updateNetwork) newAttrs['networkid'] = targetNetworkId;
-          if (newAttrs['name']?.includes(targetOldSN)) newAttrs['name'] = newAttrs['name'].replace(targetOldSN, targetNewSN);
-          return reconstructPMUTag(fullMatch, newAttrs);
+      result = result.replace(/<PMU\s+([^>]+)>/g, (tag, content) => {
+        const attrs = parseAttributes(content);
+        if (attrs['sn'] === oldSN) {
+          const updated = { ...attrs, sn: newSN };
+          if (updateNet) updated['networkid'] = netId;
+          if (updated['name']?.includes(oldSN)) updated['name'] = updated['name'].replace(oldSN, newSN);
+          return reconstructTag(tag, updated);
         }
-        return fullMatch;
+        return tag;
       });
-      modifiedContent = modifiedContent.replace(new RegExp(`sn="${targetOldSN}"`, 'g'), `sn="${targetNewSN}"`);
+      result = result.replace(new RegExp(`sn="${oldSN}"`, 'g'), `sn="${newSN}"`);
     } else {
-      const source = extractedSNs.find(s => s.value === sourceCloneSN);
+      const source = extractedSNs.find(s => s.value === sourceSN);
       if (!source) return;
-      const data = {};
-      GH_CALIBRATION_KEYS.forEach(k => { if (source.attributes[k]) data[k] = source.attributes[k]; });
+      const data: Record<string, string> = {};
+      CALIBRATION_KEYS.forEach(k => { if (source.attributes[k]) data[k] = source.attributes[k]; });
       
-      modifiedContent = modifiedContent.replace(/<PMU\s+([^>]+)>/g, (fullMatch, contentStr) => {
-        const attrs = parseAttributes(contentStr);
-        if (attrs['sn'] === targetCloneSN) {
-          const newAttrs = { ...attrs, ...data };
-          if (updateNetwork) newAttrs['networkid'] = targetNetworkId;
-          return reconstructPMUTag(fullMatch, newAttrs);
+      result = result.replace(/<PMU\s+([^>]+)>/g, (tag, content) => {
+        const attrs = parseAttributes(content);
+        if (attrs['sn'] === targetSN) {
+          const updated = { ...attrs, ...data };
+          if (updateNet) updated['networkid'] = netId;
+          return reconstructTag(tag, updated);
         }
-        return fullMatch;
+        return tag;
       });
     }
 
-    const blob = new Blob([modifiedContent], { type: 'text/plain' });
-    setDownloadUrl(URL.createObjectURL(blob));
-    setIsProcessed(true);
+    const blob = new Blob([result], { type: 'text/plain' });
+    setDlUrl(URL.createObjectURL(blob));
+    setIsDone(true);
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 p-4 md:p-8">
+    <div className="min-h-screen bg-slate-950 text-slate-200 p-4 md:p-10">
       <div className="max-w-4xl mx-auto space-y-8">
-        <header className="flex flex-col md:flex-row items-center justify-between border-b border-slate-800 pb-6 gap-4">
-          <div className="flex items-center space-x-4">
-            <div className="p-3 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-500/20"><Cpu className="w-8 h-8 text-white" /></div>
+        <header className="flex flex-col md:flex-row items-center justify-between border-b border-slate-800 pb-8 gap-4">
+          <div className="flex items-center space-x-5">
+            <div className="p-4 bg-indigo-600 rounded-2xl shadow-xl shadow-indigo-500/10"><Cpu className="w-8 h-8 text-white" /></div>
             <div>
-              <h1 className="text-2xl font-black tracking-tight text-white">MAP PATCHER</h1>
-              <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Daylight Calibration Transfer</p>
+              <h1 className="text-3xl font-black tracking-tight text-white">MAP PATCHER</h1>
+              <p className="text-slate-500 text-xs font-bold uppercase tracking-[0.2em]">Calibration & ID Switcher</p>
             </div>
           </div>
           {fileContent && (
-            <button onClick={() => { setFileContent(null); setIsProcessed(false); }} className="px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs font-bold transition-all">NEW FILE</button>
+            <button onClick={() => { setFileContent(null); setIsDone(false); }} className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-[10px] font-black tracking-widest transition-all">NEUE DATEI</button>
           )}
         </header>
 
         {!fileContent ? (
-          <DropZone onFileLoaded={(name, content) => { setFileName(name); setFileContent(content); setIsProcessed(false); }} />
+          <DropZone onFileLoaded={(name, content) => { setFileName(name); setFileContent(content); setIsDone(false); }} />
         ) : (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="flex justify-center">
-              <div className="bg-slate-900/50 p-1.5 rounded-2xl border border-slate-800 flex shadow-2xl">
-                <button onClick={() => { setMode('patch'); setIsProcessed(false); }} className={`px-8 py-3 rounded-xl text-xs font-black transition-all tracking-widest ${mode === 'patch' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>REPLACE SN</button>
-                <button onClick={() => { setMode('clone'); setIsProcessed(false); }} className={`px-8 py-3 rounded-xl text-xs font-black transition-all tracking-widest ${mode === 'clone' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>TRANSFER GH</button>
+              <div className="bg-slate-900/50 p-2 rounded-2xl border border-slate-800 flex shadow-2xl backdrop-blur">
+                <button onClick={() => { setMode('patch'); setIsDone(false); }} className={`px-10 py-3.5 rounded-xl text-xs font-black transition-all tracking-widest ${mode === 'patch' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>ID ÄNDERN</button>
+                <button onClick={() => { setMode('clone'); setIsDone(false); }} className={`px-10 py-3.5 rounded-xl text-xs font-black transition-all tracking-widest ${mode === 'clone' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>GH TRANSFER</button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-6">
                 {mode === 'patch' ? (
-                  <div className="bg-slate-900/40 border border-slate-800 rounded-3xl p-8 space-y-6 backdrop-blur-sm">
-                    <h3 className="font-black text-indigo-400 uppercase tracking-widest text-[10px] flex items-center"><Info className="w-4 h-4 mr-2" /> Target Device</h3>
-                    <SearchableSelect label="OLD SERIAL (Reference)" options={extractedSNs} value={targetOldSN} onChange={v => { setTargetOldSN(v); setIsProcessed(false); }} />
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">New Serial Number</label>
-                      <input type="text" value={targetNewSN} onChange={e => { setTargetNewSN(e.target.value); setIsProcessed(false); }} className="w-full bg-slate-950/50 border border-slate-700 rounded-2xl px-5 py-4 font-mono text-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="ABCD1234..." />
+                  <div className="bg-slate-900/40 border border-slate-800 rounded-[2.5rem] p-10 space-y-8 shadow-inner">
+                    <h3 className="font-black text-indigo-400 uppercase tracking-widest text-[10px] flex items-center"><Info className="w-4 h-4 mr-3" />Ziel-Gerät</h3>
+                    <SearchableSelect label="Alte Seriennummer" options={extractedSNs} value={oldSN} onChange={v => { setOldSN(v); setIsDone(false); }} />
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Neue Seriennummer</label>
+                      <input type="text" value={newSN} onChange={e => { setNewSN(e.target.value); setIsDone(false); }} className="w-full bg-slate-950/50 border border-slate-700 rounded-2xl px-6 py-5 font-mono text-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-lg" placeholder="Z.B. 0201ABCD" />
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-slate-900/40 border border-slate-800 rounded-3xl p-8 space-y-8 backdrop-blur-sm">
-                    <h3 className="font-black text-emerald-400 uppercase tracking-widest text-[10px] flex items-center"><Zap className="w-4 h-4 mr-2" /> GH Transfer Windows</h3>
+                  <div className="bg-slate-900/40 border border-slate-800 rounded-[2.5rem] p-10 space-y-8 shadow-inner">
+                    <h3 className="font-black text-emerald-400 uppercase tracking-widest text-[10px] flex items-center"><Zap className="w-4 h-4 mr-3" />GH Transfer Fenster</h3>
                     <div className="space-y-6">
-                       <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">1. SOURCE (From: Read GH values)</label>
-                          <SearchableSelect options={extractedSNs.filter(s => s.isPmu)} value={sourceCloneSN} onChange={v => { setSourceCloneSN(v); setIsProcessed(false); }} placeholder="Select source device..." />
+                       <div className="space-y-3">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">1. QUELLE (Von diesem Licht lesen)</label>
+                          <SearchableSelect options={extractedSNs.filter(s => s.isPmu)} value={sourceSN} onChange={v => { setSourceSN(v); setIsDone(false); }} placeholder="Quelle wählen..." />
                        </div>
-                       <div className="flex justify-center items-center py-2"><ArrowRight className="w-6 h-6 text-slate-700 rotate-90" /></div>
-                       <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">2. TARGET (To: Overwrite GH values)</label>
-                          <SearchableSelect options={extractedSNs.filter(s => s.isPmu && s.value !== sourceCloneSN)} value={targetCloneSN} onChange={v => { setTargetCloneSN(v); setIsProcessed(false); }} placeholder="Select target device..." />
+                       <div className="flex justify-center items-center py-4"><ArrowRight className="w-8 h-8 text-slate-800 rotate-90" /></div>
+                       <div className="space-y-3">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">2. ZIEL (Auf dieses Licht schreiben)</label>
+                          <SearchableSelect options={extractedSNs.filter(s => s.isPmu && s.value !== sourceSN)} value={targetSN} onChange={v => { setTargetSN(v); setIsDone(false); }} placeholder="Ziel wählen..." />
                        </div>
                     </div>
                   </div>
                 )}
               </div>
 
-              <div className="space-y-6">
-                <div className="bg-slate-900/40 border border-slate-800 rounded-3xl p-8 space-y-6 backdrop-blur-sm">
+              <div className="space-y-8">
+                <div className="bg-slate-900/40 border border-slate-800 rounded-[2.5rem] p-10 space-y-6 shadow-inner">
                   <div className="flex justify-between items-center">
-                    <h3 className="font-black text-indigo-400 uppercase tracking-widest text-[10px] flex items-center"><LayoutTemplate className="w-4 h-4 mr-2" /> Network Options</h3>
-                    <input type="checkbox" checked={updateNetwork} onChange={e => { setUpdateNetwork(e.target.checked); setIsProcessed(false); }} className="w-6 h-6 rounded-lg border-slate-700 bg-slate-800 text-indigo-600 focus:ring-0" />
+                    <h3 className="font-black text-indigo-400 uppercase tracking-widest text-[10px] flex items-center"><LayoutTemplate className="w-4 h-4 mr-3" />Netzwerk Optionen</h3>
+                    <div className="flex items-center space-x-3 bg-slate-950 p-2 rounded-xl border border-slate-800">
+                       <span className="text-[10px] font-black text-slate-500 uppercase">Aktiv</span>
+                       <input type="checkbox" checked={updateNet} onChange={e => { setUpdateNet(e.target.checked); setIsDone(false); }} className="w-6 h-6 rounded-lg border-slate-700 bg-slate-800 text-indigo-600 focus:ring-0 cursor-pointer" />
+                    </div>
                   </div>
-                  <div className={`transition-all duration-300 ${updateNetwork ? 'opacity-100 scale-100' : 'opacity-30 scale-95 grayscale pointer-events-none'}`}>
-                    <NetworkSelector value={targetNetworkId} onChange={v => { setTargetNetworkId(v); setIsProcessed(false); }} />
+                  <div className={`transition-all duration-500 ${updateNet ? 'opacity-100 scale-100' : 'opacity-20 scale-95 grayscale pointer-events-none'}`}>
+                    <NetworkSelector value={netId} onChange={v => { setNetId(v); setIsDone(false); }} />
                   </div>
                 </div>
 
-                <div className="bg-slate-900/40 border border-slate-800 rounded-3xl p-8 space-y-4 text-xs font-bold uppercase tracking-widest text-slate-500">
-                  <div className="flex justify-between"><span>File:</span><span className="text-slate-300 truncate max-w-[120px]">{fileName}</span></div>
-                  <div className="flex justify-between"><span>Mode:</span><span className={mode === 'patch' ? 'text-indigo-400' : 'text-emerald-400'}>{mode}</span></div>
-                  {updateNetwork && <div className="flex justify-between"><span>NEW ID:</span><span className="text-amber-400 font-mono">{targetNetworkId}</span></div>}
+                <div className="bg-slate-900/20 border border-slate-800 rounded-3xl p-8 space-y-4 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  <div className="flex justify-between border-b border-slate-800/50 pb-2"><span>DATEI:</span><span className="text-slate-300 truncate max-w-[150px]">{fileName}</span></div>
+                  <div className="flex justify-between border-b border-slate-800/50 pb-2"><span>MODUS:</span><span className={mode === 'patch' ? 'text-indigo-400' : 'text-emerald-400'}>{mode === 'patch' ? 'Serial Replace' : 'GH Clone'}</span></div>
+                  {updateNet && <div className="flex justify-between"><span>NET ID:</span><span className="text-amber-400 font-mono text-xs">{netId}</span></div>}
                 </div>
 
                 <button 
-                  onClick={executeProcess} 
-                  disabled={isProcessed || (mode === 'patch' ? !targetNewSN : !targetCloneSN)} 
-                  className={`w-full py-5 rounded-3xl font-black text-sm tracking-widest shadow-2xl transition-all flex items-center justify-center ${isProcessed ? 'bg-emerald-600 text-white' : 'bg-white text-black hover:scale-[1.02] active:scale-[0.98] disabled:opacity-20'}`}
+                  onClick={runProcess} 
+                  disabled={isDone || (mode === 'patch' ? !newSN : !targetSN)} 
+                  className={`w-full py-6 rounded-[2rem] font-black text-xs tracking-[0.3em] shadow-2xl transition-all flex items-center justify-center ${isDone ? 'bg-emerald-600 text-white' : 'bg-white text-black hover:scale-[1.03] active:scale-[0.97] disabled:opacity-10'}`}
                 >
-                  {isProcessed ? <><CheckCircle2 className="w-6 h-6 mr-3" /> SUCCESS</> : mode === 'patch' ? 'PATCH MAP FILE' : 'EXECUTE GH TRANSFER'}
+                  {isDone ? <><CheckCircle2 className="w-6 h-6 mr-3" /> FERTIG</> : mode === 'patch' ? 'PATCH MAP FILE' : 'GH TRANSFER AUSFÜHREN'}
                 </button>
 
-                {isProcessed && downloadUrl && (
-                  <a href={downloadUrl} download={fileName?.replace('.map', `_${mode === 'patch' ? 'patched' : 'gh_copy'}.map`)} className="flex items-center justify-center w-full px-6 py-5 bg-emerald-500 text-black font-black text-xs tracking-widest rounded-3xl transition-all hover:bg-emerald-400 animate-in zoom-in-95">
-                    <Download className="w-5 h-5 mr-3" /> DOWNLOAD UPDATED .MAP
+                {isDone && dlUrl && (
+                  <a href={dlUrl} download={fileName?.replace('.map', `_${mode === 'patch' ? 'patch' : 'gh_copy'}.map`)} className="flex items-center justify-center w-full px-6 py-6 bg-emerald-500 text-black font-black text-xs tracking-widest rounded-[2rem] transition-all hover:bg-emerald-400 animate-bounce shadow-xl shadow-emerald-500/20">
+                    <Download className="w-5 h-5 mr-3" /> DATEI HERUNTERLADEN
                   </a>
                 )}
               </div>
