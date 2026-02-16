@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
+<html lang="de">
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MapFile Serial Patcher</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script type="importmap">
 {
@@ -20,37 +20,113 @@
 }
 </script>
     <style>
-      body {
-        font-family: 'Inter', sans-serif;
-        background-color: #020617;
-        color: #f8fafc;
-        margin: 0;
-      }
-      .font-mono { font-family: ui-monospace, monospace; }
-      /* Prevent layout shift during load */
-      #root:empty::after {
-        content: "App wird geladen...";
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        color: #64748b;
-        font-weight: 500;
-      }
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; overflow-x: hidden; }
+        .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #334155; }
     </style>
-  </head>
-  <body>
+</head>
+<body>
     <div id="root"></div>
-    <script type="text/babel" data-type="module" data-presets="react,typescript">
-      import React from 'react';
-      import { createRoot } from 'react-dom/client';
-      import App from './App.tsx';
 
-      const rootElement = document.getElementById('root');
-      if (rootElement) {
-        const root = createRoot(rootElement);
-        root.render(<App />);
-      }
-    </script>
-  </body>
-</html>
+    <script type="text/babel" data-presets="react,typescript">
+        import React, { useState, useEffect, useRef, useCallback } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { 
+            Upload, Cpu, Zap, Download, RefreshCw, CheckCircle2, 
+            Info, ArrowRight, LayoutTemplate, Settings, FileText,
+            Search, ChevronDown, Check, AlertCircle
+        } from 'lucide-react';
+
+        // --- KONFIGURATION & HELPER ---
+        const CALIBRATION_KEYS = [
+            'flags', 'map_daylight', 'map_amb_env_gain', 'amb_env_gain',
+            'amb_act_lev', 'map_amb_act_lev', 'amb_inact_lev', 'map_amb_inact_lev',
+            'dh_active_target_level', 'map_dh_active_target_level',
+            'dh_inactive_target_level', 'map_dh_inactive_target_level',
+            'dh_amb_0', 'dh_amb_1', 'dh_amb_100', 'amb_on_hyst', 'map_amb_on_hyst',
+            'amb_off_hyst', 'map_amb_off_hyst', 'dh_meter_1', 'dh_meter_100', 
+            'dh_meter_units', 'min_dim', 'mindim', 'rampUpSpeed', 'rampDownSpeed'
+        ];
+
+        const parseAttributes = (tagStr) => {
+            const attrs = {};
+            const regex = /([a-zA-Z0-9_]+)="([^"]*)"/g;
+            let match;
+            while ((match = regex.exec(tagStr)) !== null) {
+                attrs[match[1]] = match[2];
+            }
+            return attrs;
+        };
+
+        const updateTag = (originalTag, updates) => {
+            let newTag = originalTag;
+            Object.entries(updates).forEach(([key, value]) => {
+                const regex = new RegExp(`(${key})="([^"]*)"`);
+                if (regex.test(newTag)) {
+                    newTag = newTag.replace(regex, `${key}="${value}"`);
+                } else {
+                    const insertPos = newTag.endsWith('/>') ? -2 : -1;
+                    newTag = newTag.slice(0, insertPos) + ` ${key}="${value}"` + newTag.slice(insertPos);
+                }
+            });
+            return newTag;
+        };
+
+        // --- KOMPONENTEN ---
+
+        const DropZone = ({ onFileLoaded }) => {
+            const [isDragging, setIsDragging] = useState(false);
+            const process = (file) => {
+                const reader = new FileReader();
+                reader.onload = (e) => onFileLoaded(file.name, e.target.result);
+                reader.readAsText(file);
+            };
+            return (
+                <div 
+                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={(e) => { e.preventDefault(); process(e.dataTransfer.files[0]); }}
+                    className={`relative h-80 border-2 border-dashed rounded-[3rem] transition-all flex flex-col items-center justify-center text-center p-8 ${isDragging ? 'border-indigo-500 bg-indigo-500/10' : 'border-slate-800 bg-slate-900/40 hover:border-slate-700'}`}
+                >
+                    <div className="p-6 bg-slate-800 rounded-full mb-6"><Upload className="w-10 h-10 text-indigo-400" /></div>
+                    <h2 className="text-xl font-bold text-white mb-2">.MAP Datei hierher ziehen</h2>
+                    <p className="text-slate-500 text-sm max-w-xs">Wähle deine Konfigurationsdatei aus, um die Seriennummern zu bearbeiten.</p>
+                    <input type="file" accept=".map,.txt" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => process(e.target.files[0])} />
+                </div>
+            );
+        };
+
+        const SearchableSelect = ({ options, value, onChange, label, placeholder = "Wählen..." }) => {
+            const [open, setOpen] = useState(false);
+            const [search, setSearch] = useState('');
+            const ref = useRef(null);
+            useEffect(() => {
+                const hide = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+                document.addEventListener("mousedown", hide);
+                return () => document.removeEventListener("mousedown", hide);
+            }, []);
+            const filtered = options.filter(o => o.value.toLowerCase().includes(search.toLowerCase()));
+            const selected = options.find(o => o.value === value);
+            return (
+                <div className="relative" ref={ref}>
+                    {label && <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block ml-1">{label}</label>}
+                    <div onClick={() => setOpen(!open)} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 flex justify-between items-center cursor-pointer hover:border-slate-600 transition-all">
+                        <span className={selected ? "font-mono text-white" : "text-slate-600"}>
+                            {selected ? `${selected.value} (Net: ${selected.networkId || '?'})` : placeholder}
+                        </span>
+                        <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />
+                    </div>
+                    {open && (
+                        <div className="absolute z-50 w-full mt-2 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                            <div className="p-3 border-b border-slate-800 flex items-center gap-2">
+                                <Search className="w-4 h-4 text-slate-600" />
+                                <input autoFocus className="bg-transparent border-none outline-none text-sm w-full text-white" placeholder="Suche..." value={search} onChange={e => setSearch(e.target.value)} />
+                            </div>
+                            <div className="max-h-60 overflow-y-auto custom-scrollbar">
+                                {filtered.map(o => (
+                                    <div key={o.value} onClick={() => { onChange(o.value); setOpen(false); }} className={`px-5 py-3 text-sm font-mono cursor-pointer flex justify-between ${value === o.value ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800 text-slate-300'}`}>
+                                        <span>{o.value}</span>
+                                        <span className="opacity-50 text
