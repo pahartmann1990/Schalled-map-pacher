@@ -45,7 +45,7 @@
             font-weight: 900;
             transition: all 0.2s ease;
         }
-        .btn-yellow:hover {
+        .btn-yellow:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 10px 20px rgba(255, 225, 77, 0.3);
         }
@@ -55,6 +55,12 @@
 
         .fade-in { animation: fadeIn 0.5s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--schahl-navy); }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--schahl-light-blue); }
 
         #root:empty::after {
             content: "SCHAHLLED SYSTEM START...";
@@ -78,7 +84,7 @@
         import { 
             Upload, Cpu, Zap, Download, RefreshCw, CheckCircle2, 
             Search, ChevronDown, Check, X, BookOpen, HelpCircle, 
-            Settings, HardDrive, ArrowRight, FileText, ShieldCheck
+            Settings, HardDrive, ArrowRight, FileText, ShieldCheck, Plus, Trash2, Info
         } from 'lucide-react';
 
         const CALIBRATION_KEYS = [
@@ -115,7 +121,7 @@
             return newTag;
         };
 
-        const SearchableSelect = ({ options, value, onChange, label }) => {
+        const SearchableSelect = ({ options, value, onChange, label, className = "" }) => {
             const [open, setOpen] = useState(false);
             const [search, setSearch] = useState('');
             const ref = useRef(null);
@@ -127,22 +133,23 @@
             const filtered = options.filter(o => o.value.toLowerCase().includes(search.toLowerCase()));
             const selected = options.find(o => o.value === value);
             return (
-                <div className="relative" ref={ref}>
+                <div className={`relative ${className}`} ref={ref}>
                     {label && <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">{label}</label>}
-                    <div onClick={() => setOpen(!open)} className={`w-full bg-[#000810] border rounded-xl px-5 py-4 flex justify-between items-center cursor-pointer transition-all ${open ? 'border-schahl-light-blue' : 'border-slate-800'}`}>
-                        <span className={selected ? "font-mono text-white text-lg" : "text-slate-600 italic"}>
-                            {selected ? selected.value : "Gerät wählen..."}
+                    <div onClick={() => setOpen(!open)} className={`w-full bg-[#000810] border rounded-xl px-4 py-3 flex justify-between items-center cursor-pointer transition-all ${open ? 'border-schahl-light-blue' : 'border-slate-800'}`}>
+                        <span className={selected ? "font-mono text-white text-base" : "text-slate-600 text-sm italic"}>
+                            {selected ? selected.value : "Leuchte wählen..."}
                         </span>
-                        <ChevronDown className="w-5 h-5 text-schahl-light-blue" />
+                        <ChevronDown className="w-4 h-4 text-schahl-light-blue" />
                     </div>
                     {open && (
                         <div className="absolute z-50 w-full mt-2 bg-[#001a35] border border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto">
-                            <div className="p-3 border-b border-slate-800 sticky top-0 bg-[#001a35] z-10 flex gap-2">
-                                <Search className="w-4 h-4 text-slate-500" />
-                                <input autoFocus className="bg-transparent border-none outline-none text-sm w-full text-white" placeholder="Suchen..." value={search} onChange={e => setSearch(e.target.value)} />
+                            <div className="p-2 border-b border-slate-800 sticky top-0 bg-[#001a35] z-10 flex gap-2">
+                                <Search className="w-3 h-3 text-slate-500 mt-1 ml-1" />
+                                <input autoFocus className="bg-transparent border-none outline-none text-xs w-full text-white" placeholder="Suchen..." value={search} onChange={e => setSearch(e.target.value)} />
                             </div>
+                            {filtered.length === 0 && <div className="px-4 py-3 text-xs text-slate-500 italic">Keine Treffer</div>}
                             {filtered.map(o => (
-                                <div key={o.value} onClick={() => { onChange(o.value); setOpen(false); }} className={`px-5 py-4 text-sm font-mono cursor-pointer hover:bg-slate-800 ${value === o.value ? 'bg-[#002855] text-white' : 'text-slate-300'}`}>
+                                <div key={o.value} onClick={() => { onChange(o.value); setOpen(false); }} className={`px-4 py-3 text-xs font-mono cursor-pointer hover:bg-slate-800 ${value === o.value ? 'bg-[#002855] text-white' : 'text-slate-300'}`}>
                                     {o.value} <span className="text-[9px] opacity-40 ml-2">({o.networkId})</span>
                                 </div>
                             ))}
@@ -156,10 +163,14 @@
             const [file, setFile] = useState(null);
             const [extracted, setExtracted] = useState([]);
             const [mode, setMode] = useState('patch');
-            const [oldSN, setOldSN] = useState('');
-            const [newSN, setNewSN] = useState('');
+            
+            // Multi-Patch State
+            const [patchJobs, setPatchJobs] = useState([{ id: Date.now(), oldSN: '', newSN: '' }]);
+            
+            // Transfer State
             const [srcSN, setSrcSN] = useState('');
             const [dstSN, setDstSN] = useState('');
+            
             const [isDone, setIsDone] = useState(false);
             const [dlUrl, setDlUrl] = useState(null);
 
@@ -174,22 +185,53 @@
                 }
                 const sorted = Array.from(snMap.values());
                 setExtracted(sorted);
-                if (sorted.length > 0) { setOldSN(sorted[0].value); setSrcSN(sorted[0].value); }
+                
+                // Initialwerte setzen
+                if (sorted.length > 0) {
+                    setPatchJobs([{ id: Date.now(), oldSN: sorted[0].value, newSN: '' }]);
+                    setSrcSN(sorted[0].value);
+                }
             }, [file]);
+
+            const addPatchJob = () => {
+                if (patchJobs.length < 10) {
+                    setPatchJobs([...patchJobs, { id: Date.now(), oldSN: extracted[0]?.value || '', newSN: '' }]);
+                    setIsDone(false);
+                }
+            };
+
+            const removePatchJob = (id) => {
+                if (patchJobs.length > 1) {
+                    setPatchJobs(patchJobs.filter(j => j.id !== id));
+                    setIsDone(false);
+                }
+            };
+
+            const updatePatchJob = (id, field, value) => {
+                setPatchJobs(patchJobs.map(j => j.id === id ? { ...j, [field]: value } : j));
+                setIsDone(false);
+            };
 
             const run = () => {
                 let res = file.content;
                 if (mode === 'patch') {
-                    res = res.replace(/<PMU\s+([^>]+)>/g, (tag, content) => {
-                        const attrs = parseAttributes(content);
-                        if (attrs.sn === oldSN) {
-                            const upd = { ...attrs, sn: newSN };
-                            if (upd.name?.includes(oldSN)) upd.name = upd.name.replace(oldSN, newSN);
-                            return updateTag(tag, upd);
-                        }
-                        return tag;
+                    patchJobs.forEach(job => {
+                        if (!job.oldSN || !job.newSN) return;
+                        
+                        // 1. PMU Tags ersetzen
+                        res = res.replace(/<PMU\s+([^>]+)>/g, (tag, content) => {
+                            const attrs = parseAttributes(content);
+                            if (attrs.sn === job.oldSN) {
+                                const upd = { ...attrs, sn: job.newSN };
+                                if (upd.name?.includes(job.oldSN)) upd.name = upd.name.replace(job.oldSN, job.newSN);
+                                return updateTag(tag, upd);
+                            }
+                            return tag;
+                        });
+                        
+                        // 2. Direkte Referenzen im Rest der XML ersetzen
+                        res = res.replace(new RegExp(`sn="${job.oldSN}"`, 'g'), `sn="${job.newSN}"`);
                     });
-                    res = res.replace(new RegExp(`sn="${oldSN}"`, 'g'), `sn="${newSN}"`);
                 } else {
                     const source = extracted.find(s => s.value === srcSN);
                     const data = {};
@@ -211,22 +253,16 @@
                         
                         <header className="flex flex-col md:flex-row items-center justify-between gap-8 border-b border-slate-800 pb-12">
                             <div className="flex flex-col items-center md:items-start gap-4">
-                                {/* Nutzt die lokale logo.png Datei aus dem Root-Verzeichnis */}
                                 <div className="relative">
                                     <img 
-                                        src="logo.png" 
-                                        alt="SchahlLED Logo" 
-                                        className="h-20 md:h-28 object-contain"
+                                        src="./logo.png" 
+                                        alt="SchahlLED" 
+                                        className="h-16 md:h-24 object-contain"
                                         onError={(e) => {
-                                            console.warn("Local logo not found, using web fallback");
+                                            console.warn("Logo.png missing, trying fallback");
                                             e.target.src = "https://schahlled.de/wp-content/uploads/2021/04/schahlled-logo-white.png";
-                                            e.target.onerror = () => {
-                                                e.target.style.display = 'none';
-                                                e.target.nextSibling.style.display = 'block';
-                                            };
                                         }}
                                     />
-                                    <div className="hidden text-3xl font-black text-white">SCHAHL<span className="text-schahl-light-blue">LED</span></div>
                                 </div>
                             </div>
                             <div className="flex flex-col items-center md:items-end text-center md:text-right">
@@ -236,44 +272,41 @@
                                     <div className="flex items-center px-3 py-1 bg-emerald-500/10 rounded-full text-[9px] font-black text-emerald-400 border border-emerald-500/20">
                                         <ShieldCheck size={10} className="mr-1.5" /> SYSTEM STABLE
                                     </div>
-                                    <div className="px-3 py-1 bg-slate-800 rounded-full text-[9px] font-black text-slate-500 uppercase">Ver. 4.7.1</div>
+                                    <div className="px-3 py-1 bg-slate-800 rounded-full text-[9px] font-black text-slate-500 uppercase">Ver. 5.0.0</div>
                                 </div>
                             </div>
                         </header>
 
                         {!file ? (
                             <div className="grid lg:grid-cols-5 gap-10">
-                                <div className="lg:col-span-3 card-navy p-12 flex flex-col items-center justify-center min-h-[400px] border-dashed border-2 border-slate-800 hover:border-schahl-light-blue transition-all relative group shadow-2xl overflow-hidden">
-                                    <div className="absolute inset-0 bg-schahl-blue/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                    <div className="relative z-10 flex flex-col items-center">
-                                        <div className="p-8 bg-schahl-blue/50 rounded-full mb-6 group-hover:scale-110 transition-transform border border-schahl-light-blue/20">
-                                            <Upload className="w-12 h-12 text-schahl-light-blue" />
-                                        </div>
-                                        <h2 className="text-2xl font-black mb-2 tracking-tight uppercase">MAP DATEI IMPORTIEREN</h2>
-                                        <p className="text-slate-500 text-sm max-w-xs text-center">Wählen Sie Ihre Projektdatei (.MAP) aus dem Commissioner-Verzeichnis.</p>
+                                <div className="lg:col-span-3 card-navy p-12 flex flex-col items-center justify-center min-h-[400px] border-dashed border-2 border-slate-800 hover:border-schahl-light-blue transition-all relative group shadow-2xl">
+                                    <div className="p-8 bg-schahl-blue/50 rounded-full mb-6 group-hover:scale-110 transition-transform border border-schahl-light-blue/20">
+                                        <Upload className="w-12 h-12 text-schahl-light-blue" />
                                     </div>
+                                    <h2 className="text-2xl font-black mb-2 tracking-tight uppercase">MAP DATEI IMPORTIEREN</h2>
+                                    <p className="text-slate-500 text-sm max-w-xs text-center">Wählen Sie Ihre Projektdatei (.MAP) aus dem Commissioner-Verzeichnis.</p>
                                     <input type="file" accept=".map" className="absolute inset-0 opacity-0 cursor-pointer z-20" onChange={(e) => {
                                         const f = e.target.files[0];
                                         if (f) { const r = new FileReader(); r.onload = (ev) => setFile({ name: f.name, content: ev.target.result }); r.readAsText(f); }
                                     }} />
                                 </div>
                                 <div className="lg:col-span-2 space-y-6">
-                                    <div className="card-navy p-10 space-y-8 h-full flex flex-col justify-center border-l-4 border-l-schahl-yellow">
+                                    <div className="card-navy p-10 space-y-8 h-full flex flex-col justify-center border-l-4 border-l-schahl-yellow shadow-xl">
                                         <h3 className="text-schahl-yellow font-black text-xs uppercase tracking-widest flex items-center gap-3">
-                                            <BookOpen size={18} className="text-schahl-yellow"/> Bedienung
+                                            <BookOpen size={18} className="text-schahl-yellow"/> COMMISSIONER WORKFLOW
                                         </h3>
                                         <div className="space-y-6 text-sm text-slate-400 leading-relaxed">
                                             <div className="flex gap-4">
                                                 <div className="font-black text-schahl-light-blue text-lg">1</div>
-                                                <p><strong className="text-white uppercase text-[10px] block mb-1">Upload</strong> .MAP Datei laden (Projektdatei).</p>
+                                                <p><strong className="text-white uppercase text-[10px] block mb-1">Datei laden</strong> Gepatchte .MAP im Commissioner öffnen.</p>
                                             </div>
                                             <div className="flex gap-4">
                                                 <div className="font-black text-schahl-light-blue text-lg">2</div>
-                                                <p><strong className="text-white uppercase text-[10px] block mb-1">Modus</strong> "Patch ID" (Tausch) oder "GH Copy" (Kalibrierung).</p>
+                                                <p><strong className="text-white uppercase text-[10px] block mb-1">Verify</strong> Leuchte anklicken (<span className="text-white border border-white px-1 rounded">Schwarz</span> umrandet) & <strong>Verify Map</strong> klicken.</p>
                                             </div>
                                             <div className="flex gap-4">
                                                 <div className="font-black text-schahl-light-blue text-lg">3</div>
-                                                <p><strong className="text-white uppercase text-[10px] block mb-1">Finish</strong> Datei laden und im Commissioner mit <span className="text-schahl-yellow font-bold italic">Write All</span> senden.</p>
+                                                <p><strong className="text-white uppercase text-[10px] block mb-1">Sync</strong> Sobald <span className="text-red-500 border border-red-500 px-1 rounded">Rot</span> umrandet, <strong>Sync Map</strong> ausführen.</p>
                                             </div>
                                         </div>
                                     </div>
@@ -283,22 +316,64 @@
                             <div className="grid lg:grid-cols-12 gap-10">
                                 <div className="lg:col-span-12 flex justify-center">
                                     <div className="bg-[#000810] p-1.5 rounded-2xl border border-slate-800 flex shadow-2xl">
-                                        <button onClick={() => {setMode('patch'); setIsDone(false);}} className={`px-12 py-4 rounded-xl text-xs font-black transition-all tracking-widest uppercase ${mode === 'patch' ? 'bg-schahl-light-blue text-[#001021] shadow-lg' : 'text-slate-500 hover:text-white'}`}>PATCH ID</button>
+                                        <button onClick={() => {setMode('patch'); setIsDone(false);}} className={`px-12 py-4 rounded-xl text-xs font-black transition-all tracking-widest uppercase ${mode === 'patch' ? 'bg-schahl-light-blue text-[#001021] shadow-lg' : 'text-slate-500 hover:text-white'}`}>MULTI-PATCH ID</button>
                                         <button onClick={() => {setMode('clone'); setIsDone(false);}} className={`px-12 py-4 rounded-xl text-xs font-black transition-all tracking-widest uppercase ${mode === 'clone' ? 'bg-schahl-light-blue text-[#001021] shadow-lg' : 'text-slate-500 hover:text-white'}`}>GH TRANSFER</button>
                                     </div>
                                 </div>
 
-                                <div className="lg:col-span-7 space-y-8">
-                                    <div className="card-navy p-12 space-y-10 shadow-2xl">
+                                <div className="lg:col-span-8 space-y-6">
+                                    <div className="card-navy p-8 space-y-6 shadow-2xl max-h-[70vh] overflow-y-auto">
                                         {mode === 'patch' ? (
                                             <>
-                                                <h3 className="text-schahl-light-blue font-black text-xs uppercase tracking-[0.2em] flex items-center gap-3">
-                                                    <HardDrive size={18}/> GERÄTE-ID ANPASSEN
-                                                </h3>
-                                                <SearchableSelect label="Alte Seriennummer wählen" options={extracted} value={oldSN} onChange={v => {setOldSN(v); setIsDone(false);}} />
-                                                <div className="space-y-3">
-                                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block ml-1">Neue Seriennummer (Hardware ID)</label>
-                                                    <input type="text" value={newSN} onChange={e => {setNewSN(e.target.value.toUpperCase()); setIsDone(false);}} className="w-full bg-[#000810] border border-slate-800 rounded-xl px-8 py-6 font-mono text-4xl text-white outline-none focus:border-schahl-light-blue transition-all placeholder:text-slate-900" placeholder="00000000" />
+                                                <div className="flex justify-between items-center mb-4">
+                                                    <h3 className="text-schahl-light-blue font-black text-xs uppercase tracking-[0.2em] flex items-center gap-3">
+                                                        <HardDrive size={18}/> GERÄTE-ID ANPASSUNG ({patchJobs.length})
+                                                    </h3>
+                                                    <button 
+                                                        onClick={addPatchJob} 
+                                                        disabled={patchJobs.length >= 10}
+                                                        className="flex items-center gap-2 bg-schahl-blue hover:bg-schahl-light-blue hover:text-navy text-schahl-light-blue text-[10px] font-black px-4 py-2 rounded-full transition-all disabled:opacity-30 uppercase"
+                                                    >
+                                                        <Plus size={14}/> Leuchte hinzufügen
+                                                    </button>
+                                                </div>
+                                                
+                                                <div className="space-y-4">
+                                                    {patchJobs.map((job, index) => (
+                                                        <div key={job.id} className="grid grid-cols-12 gap-4 items-end bg-[#000810]/50 p-4 rounded-2xl border border-slate-800/50 animate-in slide-in-from-left-2">
+                                                            <div className="col-span-1 text-[10px] font-black text-slate-700 self-center">#{index + 1}</div>
+                                                            <div className="col-span-5">
+                                                                <SearchableSelect 
+                                                                    label="ALT (Aus Datei)" 
+                                                                    options={extracted} 
+                                                                    value={job.oldSN} 
+                                                                    onChange={v => updatePatchJob(job.id, 'oldSN', v)} 
+                                                                />
+                                                            </div>
+                                                            <div className="col-span-1 flex justify-center pb-3">
+                                                                <ArrowRight size={16} className="text-slate-700" />
+                                                            </div>
+                                                            <div className="col-span-4">
+                                                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">NEU (Hardware ID)</label>
+                                                                <input 
+                                                                    type="text" 
+                                                                    value={job.newSN} 
+                                                                    onChange={e => updatePatchJob(job.id, 'newSN', e.target.value.toUpperCase())} 
+                                                                    className="w-full bg-[#000810] border border-slate-800 rounded-xl px-4 py-3 font-mono text-sm text-white outline-none focus:border-schahl-light-blue transition-all" 
+                                                                    placeholder="XXXXXXXX" 
+                                                                />
+                                                            </div>
+                                                            <div className="col-span-1 flex justify-end pb-2">
+                                                                <button 
+                                                                    onClick={() => removePatchJob(job.id)}
+                                                                    disabled={patchJobs.length === 1}
+                                                                    className="p-2 text-slate-700 hover:text-red-500 disabled:opacity-0 transition-colors"
+                                                                >
+                                                                    <Trash2 size={18} />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </>
                                         ) : (
@@ -306,7 +381,7 @@
                                                 <h3 className="text-schahl-light-blue font-black text-xs uppercase tracking-[0.2em] flex items-center gap-3">
                                                     <Zap size={18}/> GH-KALIBRIERUNG ÜBERTRAGEN
                                                 </h3>
-                                                <div className="space-y-10 relative">
+                                                <div className="space-y-10 relative py-4">
                                                     <SearchableSelect label="QUELLE (Von diesem Licht kopieren)" options={extracted} value={srcSN} onChange={v => {setSrcSN(v); setIsDone(false);}} />
                                                     <div className="flex justify-center -my-6 relative z-10">
                                                         <div className="bg-schahl-yellow p-4 rounded-full border-8 border-[#001021] shadow-xl">
@@ -320,14 +395,14 @@
                                     </div>
                                 </div>
 
-                                <div className="lg:col-span-5 space-y-8">
-                                    <div className="card-navy p-12 space-y-10 text-center h-full flex flex-col justify-between shadow-2xl border border-schahl-light-blue/10">
+                                <div className="lg:col-span-4 flex flex-col space-y-6">
+                                    <div className="card-navy p-10 space-y-8 text-center h-full flex flex-col justify-between shadow-2xl border border-schahl-light-blue/10">
                                         <div className="space-y-6">
                                             <div className="p-8 bg-schahl-blue/30 rounded-full w-28 h-28 mx-auto flex items-center justify-center border border-schahl-light-blue/20">
                                                 {isDone ? <CheckCircle2 size={56} className="text-emerald-400" /> : <Settings size={56} className="text-schahl-light-blue animate-spin-slow" />}
                                             </div>
                                             <div>
-                                                <h4 className="text-lg font-black text-white uppercase tracking-tight">{isDone ? 'PATCH ERFOLGREICH' : 'BEREIT ZUM PATCHEN'}</h4>
+                                                <h4 className="text-lg font-black text-white uppercase tracking-tight">{isDone ? 'DATEI ERSTELLT' : 'BEREIT ZUM PATCHEN'}</h4>
                                                 <div className="mt-2 inline-block px-3 py-1 bg-[#000810] rounded border border-slate-800 text-[10px] font-mono text-slate-500 italic uppercase">
                                                     {file.name}
                                                 </div>
@@ -335,18 +410,32 @@
                                         </div>
 
                                         <div className="space-y-4">
-                                            <button onClick={run} disabled={isDone || (mode === 'patch' ? !newSN : !dstSN)} className={`w-full py-8 rounded-3xl btn-yellow text-sm tracking-[0.3em] uppercase ${isDone ? 'opacity-30 cursor-default' : ''}`}>
-                                                {isDone ? 'OK' : 'PATCH AUSFÜHREN'}
+                                            <button 
+                                                onClick={run} 
+                                                disabled={isDone || (mode === 'patch' ? patchJobs.some(j => !j.newSN) : !dstSN)} 
+                                                className={`w-full py-6 rounded-2xl btn-yellow text-sm tracking-[0.3em] uppercase disabled:opacity-20 disabled:cursor-not-allowed`}
+                                            >
+                                                {isDone ? 'ERFOLGREICH' : 'PATCH STARTEN'}
                                             </button>
                                             
                                             {isDone && dlUrl && (
-                                                <a href={dlUrl} download={file.name.replace('.map', '_patched.map')} className="flex items-center justify-center w-full py-8 bg-white text-[#001021] font-black text-sm tracking-[0.2em] rounded-3xl animate-bounce shadow-2xl hover:bg-slate-100 transition-colors uppercase">
-                                                    <Download className="mr-3" size={18} /> DOWNLOAD DATEI
+                                                <a href={dlUrl} download={file.name.replace('.map', '_patched.map')} className="flex items-center justify-center w-full py-6 bg-white text-[#001021] font-black text-sm tracking-[0.2em] rounded-2xl animate-bounce shadow-2xl hover:bg-slate-100 transition-colors uppercase">
+                                                    <Download className="mr-3" size={18} /> DOWNLOAD
                                                 </a>
                                             )}
                                             
-                                            {file && <button onClick={() => {setFile(null); setIsDone(false); setDlUrl(null);}} className="text-slate-600 text-[9px] font-black uppercase tracking-[0.4em] hover:text-red-400 transition-colors mt-4">Vorgang abbrechen</button>}
+                                            <button onClick={() => {setFile(null); setIsDone(false); setDlUrl(null);}} className="text-slate-600 text-[9px] font-black uppercase tracking-[0.4em] hover:text-red-400 transition-colors mt-4">Abbrechen</button>
                                         </div>
+                                    </div>
+                                    
+                                    <div className="bg-schahl-blue/20 rounded-2xl p-6 border border-schahl-light-blue/10">
+                                        <div className="flex gap-3 mb-3">
+                                            <Info size={16} className="text-schahl-light-blue shrink-0 mt-0.5" />
+                                            <h5 className="text-[10px] font-black uppercase tracking-widest text-white">Netzwerk Info</h5>
+                                        </div>
+                                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                                            Das Netzwerk (Group/ID) bleibt durch den Patch unverändert erhalten. Im Commissioner müssen Sie lediglich die neue Hardware mit der logischen ID verknüpfen.
+                                        </p>
                                     </div>
                                 </div>
                             </div>
