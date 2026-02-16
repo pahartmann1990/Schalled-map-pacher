@@ -6,7 +6,7 @@
     <title>MapFile Serial Patcher</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Babel standalone to support .tsx files on static hosts like GitHub Pages -->
+    <!-- Babel standalone for on-the-fly TSX transpilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script type="importmap">
 {
@@ -15,8 +15,8 @@
     "react": "https://esm.sh/react@19.0.0",
     "react-dom": "https://esm.sh/react-dom@19.0.0",
     "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/"
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/"
   }
 }
 </script>
@@ -25,13 +25,16 @@
         font-family: 'Inter', sans-serif;
         background-color: #020617; /* Slate 950 */
         color: #f8fafc;
+        margin: 0;
       }
       .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
     </style>
   </head>
   <body>
     <div id="root"></div>
-    <!-- Tell Babel to transpile our TSX entry point -->
-    <script type="text/babel" data-type="module" data-presets="react,typescript" src="./index.tsx"></script>
+    <!-- Explicitly set the entry point for Babel -->
+    <script type="text/babel" data-type="module" data-presets="react,typescript">
+      import "./index.tsx";
+    </script>
   </body>
 </html>
