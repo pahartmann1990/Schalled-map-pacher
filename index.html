@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MapFile Serial Patcher</title>
+    <title>SchahlLED Map Patcher Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -27,7 +27,7 @@
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #334155; }
         
         #root:empty::after {
-            content: "SYSTEM WIRD GELADEN...";
+            content: "INITIALISIERE SCHAHLLED SYSTEM...";
             display: flex;
             justify-content: center;
             align-items: center;
@@ -35,9 +35,18 @@
             color: #475569;
             font-size: 0.75rem;
             font-weight: 900;
-            letter-spacing: 0.4em;
-            text-transform: uppercase;
+            letter-spacing: 0.3em;
         }
+
+        .logo-glow {
+            filter: drop-shadow(0 0 15px rgba(99, 102, 241, 0.2));
+        }
+
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .animate-pulse-soft { animation: pulse-soft 3s infinite ease-in-out; }
     </style>
 </head>
 <body>
@@ -48,10 +57,11 @@
         import { createRoot } from 'react-dom/client';
         import { 
             Upload, Cpu, Zap, Download, RefreshCw, CheckCircle2, 
-            Info, ArrowRight, LayoutTemplate, Search, ChevronDown, Check, X
+            Info, ArrowRight, LayoutTemplate, Search, ChevronDown, Check, X,
+            BookOpen, ShieldCheck, History, HelpCircle
         } from 'lucide-react';
 
-        // --- KONFIGURATION ---
+        // --- KONFIGURATION FÜR CALIBRATION TRANSFER ---
         const CALIBRATION_KEYS = [
             'flags', 'map_daylight', 'map_amb_env_gain', 'amb_env_gain',
             'amb_act_lev', 'map_amb_act_lev', 'amb_inact_lev', 'map_amb_inact_lev',
@@ -62,7 +72,7 @@
             'dh_meter_units', 'min_dim', 'mindim', 'rampUpSpeed', 'rampDownSpeed'
         ];
 
-        // --- HELPER ---
+        // --- HELPER FUNKTIONEN ---
         const parseAttributes = (tagStr) => {
             const attrs = {};
             const regex = /([a-zA-Z0-9_]+)="([^"]*)"/g;
@@ -87,20 +97,19 @@
             return newTag;
         };
 
-        const SearchableSelect = ({ options, value, onChange, label, placeholder = "Wählen..." }) => {
+        // --- UI KOMPONENTEN ---
+
+        const SearchableSelect = ({ options, value, onChange, label, placeholder = "Seriennummer wählen..." }) => {
             const [open, setOpen] = useState(false);
             const [search, setSearch] = useState('');
             const ref = useRef(null);
-            
             useEffect(() => {
                 const hide = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
                 document.addEventListener("mousedown", hide);
                 return () => document.removeEventListener("mousedown", hide);
             }, []);
-
             const filtered = options.filter(o => o.value.toLowerCase().includes(search.toLowerCase()));
             const selected = options.find(o => o.value === value);
-
             return (
                 <div className="relative" ref={ref}>
                     {label && <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block ml-1">{label}</label>}
@@ -114,18 +123,22 @@
                         <div className="absolute z-50 w-full mt-2 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                             <div className="p-4 border-b border-slate-800 flex items-center gap-3 bg-slate-950/50">
                                 <Search className="w-4 h-4 text-slate-500" />
-                                <input autoFocus className="bg-transparent border-none outline-none text-sm w-full text-white" placeholder="Suche Seriennummer..." value={search} onChange={e => setSearch(e.target.value)} />
+                                <input autoFocus className="bg-transparent border-none outline-none text-sm w-full text-white" placeholder="Suchen..." value={search} onChange={e => setSearch(e.target.value)} />
                             </div>
                             <div className="max-h-60 overflow-y-auto custom-scrollbar">
-                                {filtered.map(o => (
-                                    <div key={o.value} onClick={() => { onChange(o.value); setOpen(false); }} className={`px-5 py-4 text-sm font-mono cursor-pointer flex justify-between items-center ${value === o.value ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800 text-slate-300'}`}>
-                                        <div className="flex flex-col">
-                                            <span className="font-bold">{o.value}</span>
-                                            <span className="text-[9px] opacity-50 uppercase tracking-tighter">NetID: {o.networkId || '??'}</span>
+                                {filtered.length === 0 ? (
+                                    <div className="p-4 text-center text-slate-600 text-[10px] font-bold">KEINE TREFFER</div>
+                                ) : (
+                                    filtered.map(o => (
+                                        <div key={o.value} onClick={() => { onChange(o.value); setOpen(false); }} className={`px-5 py-4 text-sm font-mono cursor-pointer flex justify-between items-center ${value === o.value ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800 text-slate-300'}`}>
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-base">{o.value}</span>
+                                                <span className="opacity-50 text-[10px] uppercase">NetID: {o.networkId || 'NONE'}</span>
+                                            </div>
+                                            {value === o.value && <Check className="w-4 h-4" />}
                                         </div>
-                                        {value === o.value && <Check className="w-4 h-4" />}
-                                    </div>
-                                ))}
+                                    ))
+                                )}
                             </div>
                         </div>
                     )}
@@ -148,13 +161,13 @@
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Gruppe</label>
                         <div className="grid grid-cols-4 gap-1">
                             {letters.map(l => (
-                                <button key={l} onClick={() => update(l, currentNum)} className={`py-2 rounded-lg text-xs font-bold border transition-all ${currentLetter === l ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'}`}>{l}</button>
+                                <button key={l} onClick={() => update(l, currentNum)} className={`py-2 rounded-lg text-xs font-bold border transition-all ${currentLetter === l ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'}`}>{l}</button>
                             ))}
                         </div>
                     </div>
                     <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">ID (01-16)</label>
-                        <select value={currentNum} onChange={(e) => update(currentLetter, parseInt(e.target.value))} className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-2 text-sm font-mono h-[72px]">
+                        <select value={currentNum} onChange={(e) => update(currentLetter, parseInt(e.target.value))} className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-2 text-sm font-mono outline-none h-[72px] focus:border-indigo-500">
                             {numbers.map(n => <option key={n} value={n}>{n < 10 ? `0${n}` : n}</option>)}
                         </select>
                     </div>
@@ -162,10 +175,13 @@
             );
         };
 
+        // --- HAUPTAPP ---
+
         const App = () => {
             const [file, setFile] = useState(null);
             const [extracted, setExtracted] = useState([]);
             const [mode, setMode] = useState('patch');
+            
             const [oldSN, setOldSN] = useState('');
             const [newSN, setNewSN] = useState('');
             const [srcSN, setSrcSN] = useState('');
@@ -182,11 +198,20 @@
                 let match;
                 while ((match = pmuRegex.exec(file.content)) !== null) {
                     const attrs = parseAttributes(match[1]);
-                    if (attrs.sn) snMap.set(attrs.sn, { value: attrs.sn, networkId: attrs.networkid, attributes: attrs });
+                    if (attrs.sn) {
+                        snMap.set(attrs.sn, { 
+                            value: attrs.sn, 
+                            networkId: attrs.networkid, 
+                            attributes: attrs
+                        });
+                    }
                 }
                 const sorted = Array.from(snMap.values());
                 setExtracted(sorted);
-                if (sorted.length > 0) { setOldSN(sorted[0].value); setSrcSN(sorted[0].value); }
+                if (sorted.length > 0) {
+                    setOldSN(sorted[0].value);
+                    setSrcSN(sorted[0].value);
+                }
             }, [file]);
 
             const run = () => {
@@ -224,71 +249,180 @@
             };
 
             return (
-                <div className="min-h-screen p-6 md:p-12 flex flex-col items-center">
-                    <div className="w-full max-w-5xl space-y-10">
-                        <header className="flex flex-col md:flex-row items-center justify-between border-b border-slate-800 pb-10 gap-6">
-                            <div className="flex items-center space-x-6">
-                                <div className="p-5 bg-indigo-600 rounded-[1.5rem]"><Cpu className="w-10 h-10 text-white" /></div>
-                                <div><h1 className="text-4xl font-black text-white">MAP PATCHER PRO</h1><p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em]">SchahlLED Utility v4.2</p></div>
+                <div className="min-h-screen p-4 md:p-10 flex flex-col items-center">
+                    <div className="w-full max-w-6xl space-y-8 animate-in fade-in duration-500">
+                        
+                        {/* HEADER MIT SCHAHLLED LOGO */}
+                        <header className="flex flex-col md:flex-row items-center justify-between border-b border-slate-800 pb-10 gap-8">
+                            <div className="flex items-center gap-8">
+                                <img 
+                                    src="https://schahlled.de/wp-content/uploads/2021/04/schahlled-logo-white.png" 
+                                    alt="SchahlLED Logo" 
+                                    className="h-16 md:h-20 logo-glow"
+                                    onError={(e) => e.target.src = "https://via.placeholder.com/300x100?text=SCHAHLLED"}
+                                />
+                                <div className="hidden md:block h-12 w-px bg-slate-800"></div>
+                                <div>
+                                    <h1 className="text-3xl font-black text-white tracking-tighter uppercase italic">Map Patcher <span className="text-indigo-500">PRO</span></h1>
+                                    <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em] flex items-center mt-1">
+                                        <ShieldCheck className="w-3 h-3 mr-2 text-emerald-500" /> SYSTEM INTEGRITY SECURED
+                                    </p>
+                                </div>
                             </div>
-                            {file && <button onClick={() => { setFile(null); setIsDone(false); setDlUrl(null); }} className="px-6 py-3 bg-slate-900 border border-slate-800 rounded-2xl text-[10px] font-black tracking-widest"><X className="w-4 h-4 mr-2 inline" /> DATEI SCHLIESSEN</button>}
+                            {file && <button onClick={() => { setFile(null); setIsDone(false); setDlUrl(null); }} className="px-6 py-4 bg-slate-900 border border-slate-800 rounded-2xl text-[10px] font-black tracking-widest hover:bg-red-500/10 hover:border-red-500/50 transition-all flex items-center group">
+                                <X className="w-4 h-4 mr-2 group-hover:scale-125 transition-transform" /> DATEI SCHLIESSEN
+                            </button>}
                         </header>
 
                         {!file ? (
-                            <div className="relative h-96 border-4 border-dashed border-slate-800 rounded-[4rem] flex flex-col items-center justify-center p-12 bg-slate-900/20 hover:border-indigo-500/50 transition-all cursor-pointer">
-                                <Upload className="w-16 h-16 text-indigo-400 mb-6" />
-                                <h2 className="text-2xl font-black text-white">.MAP DATEI LADEN</h2>
-                                <input type="file" accept=".map,.txt" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => {
-                                    const f = e.target.files[0];
-                                    if (f) { const r = new FileReader(); r.onload = (ev) => setFile({ name: f.name, content: ev.target.result }); r.readAsText(f); }
-                                }} />
+                            <div className="space-y-12">
+                                <div className="relative h-[30rem] border-4 border-dashed border-slate-800 rounded-[4rem] flex flex-col items-center justify-center p-12 bg-slate-900/20 hover:border-indigo-500/50 transition-all group overflow-hidden">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/5 to-transparent pointer-events-none"></div>
+                                    <div className="p-10 bg-slate-800 rounded-full mb-8 shadow-2xl group-hover:scale-110 transition-transform duration-500 relative">
+                                        <Upload className="w-14 h-14 text-indigo-400" />
+                                        <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full"></div>
+                                    </div>
+                                    <h2 className="text-3xl font-black text-white mb-4">MAP DATEI IMPORTIEREN</h2>
+                                    <p className="text-slate-500 text-center max-w-sm font-medium leading-relaxed">
+                                        Ziehen Sie eine <code className="text-indigo-400 font-bold">.MAP</code> Datei hierher oder klicken Sie, um Ihren Explorer zu öffnen.
+                                    </p>
+                                    <input type="file" accept=".map,.txt" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => {
+                                        const f = e.target.files[0];
+                                        if (f) { const r = new FileReader(); r.onload = (ev) => setFile({ name: f.name, content: ev.target.result }); r.readAsText(f); }
+                                    }} />
+                                </div>
+
+                                {/* ANLEITUNG VOR DEM START */}
+                                <div className="grid md:grid-cols-3 gap-8">
+                                    <div className="bg-slate-900/40 p-8 rounded-[2.5rem] border border-slate-800 space-y-4">
+                                        <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center"><BookOpen className="text-indigo-400" /></div>
+                                        <h4 className="font-black text-xs uppercase tracking-widest">1. Upload</h4>
+                                        <p className="text-xs text-slate-500 leading-relaxed">Laden Sie die Original-Map-Datei direkt aus Ihrem Projektverzeichnis hoch.</p>
+                                    </div>
+                                    <div className="bg-slate-900/40 p-8 rounded-[2.5rem] border border-slate-800 space-y-4">
+                                        <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center"><Zap className="text-emerald-400" /></div>
+                                        <h4 className="font-black text-xs uppercase tracking-widest">2. Edit</h4>
+                                        <p className="text-xs text-slate-500 leading-relaxed">Wählen Sie zwischen manuellem ID-Patch oder dem GH-Kalibrierungs-Transfer.</p>
+                                    </div>
+                                    <div className="bg-slate-900/40 p-8 rounded-[2.5rem] border border-slate-800 space-y-4">
+                                        <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center"><Download className="text-amber-400" /></div>
+                                        <h4 className="font-black text-xs uppercase tracking-widest">3. Sync</h4>
+                                        <p className="text-xs text-slate-500 leading-relaxed">Nach dem Download muss die Datei im <strong>Commissioner</strong> neu eingelesen werden.</p>
+                                    </div>
+                                </div>
                             </div>
                         ) : (
                             <div className="grid lg:grid-cols-12 gap-10">
                                 <div className="lg:col-span-12 flex justify-center">
-                                    <div className="bg-slate-900/80 p-2 rounded-3xl border border-slate-800 flex">
-                                        <button onClick={() => { setMode('patch'); setIsDone(false); }} className={`px-14 py-4 rounded-2xl text-xs font-black transition-all ${mode === 'patch' ? 'bg-indigo-600 text-white' : 'text-slate-500'}`}>PATCH ID</button>
-                                        <button onClick={() => { setMode('clone'); setIsDone(false); }} className={`px-14 py-4 rounded-2xl text-xs font-black transition-all ${mode === 'clone' ? 'bg-emerald-600 text-white' : 'text-slate-500'}`}>GH TRANSFER</button>
+                                    <div className="bg-slate-900/80 p-2 rounded-3xl border border-slate-800 flex shadow-inner backdrop-blur-2xl">
+                                        <button onClick={() => { setMode('patch'); setIsDone(false); }} className={`px-16 py-5 rounded-2xl text-xs font-black transition-all ${mode === 'patch' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500 hover:text-white'}`}>PATCH ID</button>
+                                        <button onClick={() => { setMode('clone'); setIsDone(false); }} className={`px-16 py-5 rounded-2xl text-xs font-black transition-all ${mode === 'clone' ? 'bg-emerald-600 text-white shadow-xl' : 'text-slate-500 hover:text-white'}`}>GH TRANSFER</button>
                                     </div>
                                 </div>
+
                                 <div className="lg:col-span-7 space-y-8">
-                                    <div className="bg-slate-900/40 border border-slate-800 rounded-[3rem] p-12 space-y-10 shadow-2xl">
+                                    <div className="bg-slate-900/40 border border-slate-800 rounded-[3rem] p-12 space-y-10 shadow-2xl relative overflow-hidden">
+                                        <div className={`absolute top-0 right-0 p-8 opacity-10 pointer-events-none transition-all ${mode === 'patch' ? 'text-indigo-500' : 'text-emerald-500'}`}>
+                                            {mode === 'patch' ? <Cpu size={120} /> : <Zap size={120} />}
+                                        </div>
+
                                         {mode === 'patch' ? (
                                             <>
-                                                <SearchableSelect label="Alte Seriennummer" options={extracted} value={oldSN} onChange={v => { setOldSN(v); setIsDone(false); }} />
+                                                <h3 className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.3em] flex items-center"><Info className="w-5 h-5 mr-3" />Einzel-Identität anpassen</h3>
+                                                <SearchableSelect label="Alte Seriennummer (aus Datei)" options={extracted} value={oldSN} onChange={v => { setOldSN(v); setIsDone(false); }} />
                                                 <div className="space-y-4">
-                                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Neue Seriennummer</label>
-                                                    <input type="text" value={newSN} onChange={e => { setNewSN(e.target.value.toUpperCase()); setIsDone(false); }} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-8 py-6 font-mono text-3xl text-white outline-none focus:border-indigo-500 transition-all" placeholder="0201ABCD" />
+                                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Neue Seriennummer (Hardware-ID)</label>
+                                                    <input type="text" value={newSN} onChange={e => { setNewSN(e.target.value.toUpperCase()); setIsDone(false); }} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-8 py-6 font-mono text-3xl text-white outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:opacity-10" placeholder="00000000" />
                                                 </div>
                                             </>
                                         ) : (
-                                            <div className="grid gap-8">
-                                                <SearchableSelect label="1. QUELLE (Von diesem Licht kopieren)" options={extracted} value={srcSN} onChange={v => { setSrcSN(v); setIsDone(false); }} />
-                                                <div className="flex justify-center"><ArrowRight className="w-8 h-8 text-emerald-400 rotate-90" /></div>
-                                                <SearchableSelect label="2. ZIEL (Auf dieses Licht übertragen)" options={extracted.filter(s => s.value !== srcSN)} value={dstSN} onChange={v => { setDstSN(v); setIsDone(false); }} />
-                                            </div>
+                                            <>
+                                                <h3 className="text-[11px] font-black text-emerald-400 uppercase tracking-[0.3em] flex items-center"><Zap className="w-5 h-5 mr-3" />GH Kalibrierungs-Transfer</h3>
+                                                <div className="grid gap-10 relative">
+                                                    <SearchableSelect label="1. QUELLE (Licht mit Wunsch-Einstellung)" options={extracted} value={srcSN} onChange={v => { setSrcSN(v); setIsDone(false); }} />
+                                                    <div className="flex justify-center -my-6 relative z-10">
+                                                        <div className="bg-emerald-500 p-3 rounded-full border-8 border-slate-900 shadow-2xl shadow-emerald-500/20">
+                                                            <ArrowRight className="w-8 h-8 text-white rotate-90" />
+                                                        </div>
+                                                    </div>
+                                                    <SearchableSelect label="2. ZIEL (Licht das überschrieben wird)" options={extracted.filter(s => s.value !== srcSN)} value={dstSN} onChange={v => { setDstSN(v); setIsDone(false); }} />
+                                                </div>
+                                            </>
                                         )}
                                     </div>
+                                    
+                                    {/* BEDIENUNGSANLEITUNG IM EDIT-MODUS */}
+                                    <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-[2.5rem] p-10 flex gap-6 items-start">
+                                        <HelpCircle className="w-10 h-10 text-indigo-500 flex-shrink-0" />
+                                        <div className="space-y-3">
+                                            <h4 className="text-sm font-black uppercase text-indigo-400">Profi-Tipp</h4>
+                                            <p className="text-xs text-slate-400 leading-relaxed">
+                                                Nutzen Sie den <strong>GH Transfer</strong>, um mühsame Tageslicht-Kalibrierungen von einer Leuchte auf alle anderen im selben Raum zu übertragen. Das spart bis zu 90% der Inbetriebnahmezeit vor Ort.
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
+
                                 <div className="lg:col-span-5 space-y-8">
                                     <div className="bg-slate-900/40 border border-slate-800 rounded-[3rem] p-12 space-y-10 shadow-2xl">
                                         <div className="flex justify-between items-center border-b border-slate-800/50 pb-8">
-                                            <h3 className="text-[11px] font-black text-indigo-400 uppercase tracking-widest">Netzwerk</h3>
-                                            <input type="checkbox" checked={updNet} onChange={e => { setUpdNet(e.target.checked); setIsDone(false); }} className="w-8 h-8 rounded-xl bg-slate-800 border-slate-700 text-indigo-600" />
+                                            <h3 className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.3em] flex items-center"><LayoutTemplate className="w-5 h-5 mr-3" />Netzwerk</h3>
+                                            <div className="flex items-center space-x-4 bg-slate-950 p-2 rounded-2xl border border-slate-800">
+                                                <span className="text-[9px] font-black text-slate-500 uppercase px-3 tracking-widest">{updNet ? 'AKTIV' : 'AUS'}</span>
+                                                <input type="checkbox" checked={updNet} onChange={e => { setUpdNet(e.target.checked); setIsDone(false); }} className="w-8 h-8 rounded-xl bg-slate-800 border-slate-700 text-indigo-600 focus:ring-0 cursor-pointer transition-all" />
+                                            </div>
                                         </div>
                                         <NetworkSelector value={netId} onChange={v => { setNetId(v); setIsDone(false); }} disabled={!updNet} />
-                                        <button onClick={run} disabled={isDone || (mode === 'patch' ? !newSN : !dstSN)} className={`w-full py-8 rounded-[2.5rem] font-black text-sm tracking-[0.4em] transition-all shadow-2xl ${isDone ? 'bg-emerald-600 text-white' : 'bg-white text-black hover:scale-[1.03] disabled:opacity-5'}`}>
-                                            {isDone ? <CheckCircle2 className="w-6 h-6 inline mr-2" /> : 'PATCH STARTEN'}
-                                        </button>
-                                        {isDone && dlUrl && (
-                                            <a href={dlUrl} download={file.name.replace('.map', '_patched.map')} className="flex items-center justify-center w-full py-8 bg-emerald-500 text-black font-black text-sm tracking-[0.3em] rounded-[2.5rem] animate-bounce">
-                                                <Download className="w-6 h-6 mr-3" /> DOWNLOAD
-                                            </a>
-                                        )}
+                                        
+                                        <div className="pt-8 space-y-5">
+                                            <button 
+                                                onClick={run} 
+                                                disabled={isDone || (mode === 'patch' ? !newSN : !dstSN)} 
+                                                className={`w-full py-8 rounded-[2.5rem] font-black text-sm tracking-[0.4em] transition-all flex items-center justify-center ${isDone ? 'bg-emerald-600 text-white cursor-default' : 'bg-white text-black hover:scale-[1.03] active:scale-[0.98] shadow-2xl shadow-white/10 disabled:opacity-5'}`}
+                                            >
+                                                {isDone ? <CheckCircle2 className="w-6 h-6 animate-pulse-soft" /> : 'PATCH AUSFÜHREN'}
+                                            </button>
+
+                                            {isDone && dlUrl && (
+                                                <a 
+                                                    href={dlUrl} 
+                                                    download={file.name.replace('.map', '_patched.map')} 
+                                                    className="flex flex-col items-center justify-center w-full py-8 bg-emerald-500 text-black font-black text-sm tracking-[0.3em] rounded-[2.5rem] transition-all hover:bg-emerald-400 animate-bounce shadow-2xl shadow-emerald-500/30"
+                                                >
+                                                    <div className="flex items-center">
+                                                        <Download className="w-6 h-6 mr-3" /> DOWNLOAD STARTEN
+                                                    </div>
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* INFO BOX COMMISSIONER */}
+                                    <div className="bg-slate-900/60 border border-slate-800 rounded-[2.5rem] p-10 space-y-6">
+                                        <h4 className="text-xs font-black uppercase text-slate-500 tracking-widest flex items-center">
+                                            <RefreshCw className="w-4 h-4 mr-3" /> Nächster Schritt
+                                        </h4>
+                                        <div className="space-y-4">
+                                            <div className="flex items-start gap-4">
+                                                <div className="w-6 h-6 bg-slate-800 rounded-lg flex items-center justify-center text-[10px] font-bold text-slate-400">1</div>
+                                                <p className="text-xs text-slate-400">Öffnen Sie den <strong>SchahlLED Commissioner</strong>.</p>
+                                            </div>
+                                            <div className="flex items-start gap-4">
+                                                <div className="w-6 h-6 bg-slate-800 rounded-lg flex items-center justify-center text-[10px] font-bold text-slate-400">2</div>
+                                                <p className="text-xs text-slate-400">Importieren Sie die heruntergeladene Datei.</p>
+                                            </div>
+                                            <div className="flex items-start gap-4">
+                                                <div className="w-6 h-6 bg-slate-800 rounded-lg flex items-center justify-center text-[10px] font-bold text-slate-400">3</div>
+                                                <p className="text-xs text-slate-400">Führen Sie einen "Write All" Befehl aus, um die Hardware zu synchronisieren.</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         )}
+                        <footer className="text-center py-10 opacity-10 text-[10px] font-black tracking-[0.8em] text-slate-400 uppercase">
+                            Professional Lighting Solutions • © SchahlLED GmbH
+                        </footer>
                     </div>
                 </div>
             );
