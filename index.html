@@ -72,9 +72,9 @@
             justify-content: center;
         }
 
-        /* Fix for overlapping windows: Ensure the main container doesn't clip dropdowns */
-        .main-content-scroll {
-            overflow: visible !important;
+        .dropdown-parent {
+            position: relative;
+            z-index: 100;
         }
     </style>
 </head>
@@ -168,7 +168,7 @@
         const NetworkSelector = ({ value, onChange, label }) => {
             const groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'FDN'];
             const currentGroup = value === 'FDN' ? 'FDN' : (value?.charAt(0) || 'A');
-            const currentNum = value === 'FDN' ? '' : value?.substring(1);
+            const currentNum = value === 'FDN' ? '' : (value?.substring(1) || '01');
 
             const handleUpdate = (g, n) => {
                 if (g === 'FDN') {
@@ -188,26 +188,25 @@
                                 <button
                                     key={g}
                                     onClick={() => handleUpdate(g, currentNum)}
-                                    className={`py-1.5 rounded text-[10px] font-bold border transition-all ${currentGroup === g ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-slate-950 border-slate-800 text-slate-500'}`}
+                                    className={`py-1.5 rounded text-[10px] font-bold border transition-all ${currentGroup === g ? 'bg-indigo-600 border-indigo-400 text-white shadow-md' : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-600'}`}
                                 >
                                     {g}
                                 </button>
                             ))}
                         </div>
-                        {currentGroup !== 'FDN' && (
+                        {currentGroup !== 'FDN' ? (
                             <select
-                                value={currentNum || '01'}
+                                value={currentNum}
                                 onChange={(e) => handleUpdate(currentGroup, e.target.value)}
-                                className="bg-slate-950 border border-slate-800 text-white rounded px-2 py-1 text-xs font-mono focus:border-indigo-500 w-16 h-[34px]"
+                                className="bg-slate-950 border border-slate-800 text-white rounded px-2 py-1 text-xs font-mono focus:border-indigo-500 w-16 h-[34px] outline-none"
                             >
                                 {Array.from({ length: 16 }, (_, i) => {
                                     const val = (i + 1).toString().padStart(2, '0');
                                     return <option key={val} value={val}>{val}</option>;
                                 })}
                             </select>
-                        )}
-                        {currentGroup === 'FDN' && (
-                            <div className="w-16 h-[34px] flex items-center justify-center bg-slate-950 border border-slate-800 text-slate-700 rounded text-[9px] italic">N/A</div>
+                        ) : (
+                            <div className="w-16 h-[34px] flex items-center justify-center bg-slate-900/50 border border-slate-800 text-slate-700 rounded text-[9px] italic">FDN</div>
                         )}
                     </div>
                 </div>
@@ -250,12 +249,15 @@
                         res = res.replace(/<PMU\s+([^>]+)>/g, (tag, content) => {
                             const attrs = parseAttributes(content);
                             if (attrs.sn === job.oldSN) {
+                                // NUR SN UND NETZWERKID ÄNDERN
                                 const upd = { ...attrs, sn: job.newSN, networkid: job.newNetwork };
-                                if (upd.name?.includes(job.oldSN)) upd.name = upd.name.replace(job.oldSN, job.newSN);
+                                // Name nur ändern, wenn er exakt die alte SN war
+                                if (upd.name === job.oldSN) upd.name = job.newSN;
                                 return updateTag(tag, upd);
                             }
                             return tag;
                         });
+                        // Ersetze auch SN-Vorkommen im Text (Referenzen)
                         res = res.replace(new RegExp(`sn="${job.oldSN}"`, 'g'), `sn="${job.newSN}"`);
                     });
                 } else {
@@ -290,7 +292,7 @@
                                 <p className="text-schahl-yellow text-[10px] font-black uppercase tracking-[0.5em] mt-2">Intelligent Lighting Management</p>
                                 <div className="flex gap-2 mt-4 justify-center md:justify-end">
                                     <div className="px-3 py-1 bg-emerald-500/10 rounded-full text-[9px] font-black text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5"><ShieldCheck size={10}/> SYSTEM BEREIT</div>
-                                    <div className="px-3 py-1 bg-slate-800 rounded-full text-[9px] font-black text-slate-500">v5.6.0</div>
+                                    <div className="px-3 py-1 bg-slate-800 rounded-full text-[9px] font-black text-slate-500">v5.7.0</div>
                                 </div>
                             </div>
                         </header>
@@ -299,14 +301,14 @@
                             <div className="card-navy p-16 flex flex-col items-center justify-center min-h-[400px] border-dashed border-2 border-slate-800 hover:border-schahl-light-blue transition-all relative group cursor-pointer shadow-2xl max-w-2xl mx-auto">
                                 <Upload className="w-16 h-16 text-schahl-light-blue mb-8 group-hover:scale-110 transition-transform" />
                                 <h2 className="text-3xl font-black uppercase tracking-tight">PROJEKT LADEN</h2>
-                                <p className="text-slate-500 text-base mt-4 text-center max-w-sm italic">Ziehen Sie Ihre .MAP Datei hierher, um Seriennummern zu ersetzen oder DH-Daten zu transferieren.</p>
+                                <p className="text-slate-500 text-base mt-4 text-center max-w-sm italic">Wählen Sie die .MAP Datei aus, um Seriennummern oder DH-Daten zu bearbeiten.</p>
                                 <input type="file" accept=".map" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => {
                                     const f = e.target.files[0];
                                     if (f) { const r = new FileReader(); r.onload = (ev) => setFile({ name: f.name, content: ev.target.result }); r.readAsText(f); }
                                 }} />
                             </div>
                         ) : (
-                            <div className="grid lg:grid-cols-12 gap-8 main-content-scroll">
+                            <div className="grid lg:grid-cols-12 gap-8">
                                 <div className="lg:col-span-12 flex justify-center">
                                     <div className="bg-[#000810] p-1.5 rounded-2xl border border-slate-800 flex shadow-2xl">
                                         <button onClick={() => {setMode('patch'); setIsDone(false);}} className={`px-12 py-4 rounded-xl text-[11px] font-black transition-all tracking-widest uppercase ${mode === 'patch' ? 'bg-schahl-light-blue text-navy shadow-lg' : 'text-slate-500 hover:text-white'}`}>Leuchten Austausch</button>
@@ -315,49 +317,45 @@
                                 </div>
 
                                 <div className="lg:col-span-8 space-y-8">
-                                    <div className="card-navy p-8 shadow-2xl min-h-[500px] border border-white/5 relative z-10">
+                                    <div className="card-navy p-8 shadow-2xl min-h-[500px] border border-white/5">
                                         {mode === 'patch' ? (
                                             <div className="space-y-10">
-                                                <div className="bg-indigo-950/30 p-8 rounded-3xl border border-indigo-500/20 space-y-6">
-                                                    <h3 className="text-white font-black text-xs uppercase tracking-widest flex items-center gap-3 mb-2">
+                                                <div className="bg-indigo-950/20 p-8 rounded-3xl border border-indigo-500/20 space-y-4">
+                                                    <h3 className="text-white font-black text-xs uppercase tracking-widest flex items-center gap-3">
                                                         <BookOpen size={16} className="text-schahl-yellow"/> COMMISSIONER PROZESS (NETZWERK-SUCHE)
                                                     </h3>
-                                                    <div className="grid md:grid-cols-3 gap-6 text-[11px] text-slate-400 leading-relaxed italic">
+                                                    <div className="grid md:grid-cols-2 gap-6 text-[11px] text-slate-400 leading-relaxed italic">
                                                         <div className="space-y-2">
-                                                            <strong className="text-schahl-light-blue block uppercase not-italic">1. USB & Discover</strong>
-                                                            <span className="underline text-slate-200">Add Fixtures</span> -> <span className="underline text-slate-200">Wireless Adapter</span>. Wichtig: 3-4x <span className="font-bold text-white">Discover</span> drücken, bis SN erscheint.
+                                                            <strong className="text-schahl-light-blue block uppercase not-italic">Netzwerk suchen</strong>
+                                                            Falls Netzwerk unbekannt: <span className="underline">Add Fixtures</span> -> <span className="underline">Wireless Adapter</span>. 3-4x <span className="font-bold text-white">Discover</span> drücken.
                                                         </div>
                                                         <div className="space-y-2">
-                                                            <strong className="text-schahl-light-blue block uppercase not-italic">2. Plus-Kästchen</strong>
-                                                            Doppelklick auf Leuchte. Unten links das <span className="text-white font-bold bg-slate-800 px-1 rounded">[+] Kästchen</span> klicken. Es klappt das <span className="underline text-slate-200">Current Network</span> auf.
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <strong className="text-schahl-light-blue block uppercase not-italic">3. Sync Map</strong>
-                                                            Netzwerk anpassen. Durch <span className="text-white border px-1 rounded text-[10px]">Verify Map</span> wird Leuchte <span className="text-red-500 border border-red-500 px-1 rounded text-[10px] font-bold">ROT</span>. Dann Sync ausführen.
+                                                            <strong className="text-schahl-light-blue block uppercase not-italic">Netzwerk einrichten</strong>
+                                                            Doppelklick auf Leuchte. Unten links das <span className="text-white font-bold bg-slate-800 px-1.5 rounded">[+] Kästchen</span> klicken. Dort <span className="underline">Current Network</span> auf Zielwert stellen und danach <span className="font-bold">Sync Map</span>.
                                                         </div>
                                                     </div>
                                                 </div>
 
                                                 <div className="flex justify-between items-center">
-                                                    <h3 className="text-schahl-light-blue font-black text-xs uppercase tracking-[0.2em] flex items-center gap-3"><HardDrive size={18}/> SERIENNUMMERN TAUSCHEN</h3>
+                                                    <h3 className="text-schahl-light-blue font-black text-xs uppercase tracking-[0.2em] flex items-center gap-3"><HardDrive size={18}/> SERIENNUMMERN ERSETZEN</h3>
                                                     <button onClick={() => setPatchJobs([...patchJobs, { id: Date.now(), oldSN: '', newSN: '', newNetwork: 'FDN' }])} disabled={patchJobs.length >= 10} className="text-[10px] font-black bg-schahl-blue text-schahl-light-blue px-5 py-2.5 rounded-full border border-schahl-light-blue/20 hover:bg-schahl-light-blue hover:text-navy transition-all uppercase"><Plus size={14} className="inline mr-1"/> Hinzufügen</button>
                                                 </div>
                                                 
                                                 <div className="space-y-6">
                                                     {patchJobs.map((job) => (
-                                                        <div key={job.id} className="bg-[#000810]/50 p-6 rounded-3xl border border-slate-800/50 grid grid-cols-12 gap-6 relative group transition-all hover:border-slate-700">
+                                                        <div key={job.id} className="bg-[#000810]/50 p-6 rounded-3xl border border-slate-800/50 grid grid-cols-12 gap-6 relative group hover:border-slate-700 transition-all">
                                                             <div className="col-span-5">
-                                                                <SearchableSelect label="Quell-Seriennummer (ALT)" options={extracted} value={job.oldSN} onChange={v => setPatchJobs(patchJobs.map(j => j.id === job.id ? {...j, oldSN: v} : j))} />
+                                                                <SearchableSelect label="Quell-Seriennummer" options={extracted} value={job.oldSN} onChange={v => setPatchJobs(patchJobs.map(j => j.id === job.id ? {...j, oldSN: v} : j))} />
                                                             </div>
                                                             <div className="col-span-1 flex justify-center pt-10 text-slate-700"><ArrowRight size={20}/></div>
                                                             <div className="col-span-6 space-y-6">
                                                                 <div>
                                                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Ziel-Seriennummer (NEU)</label>
-                                                                    <input type="text" value={job.newSN} onChange={e => setPatchJobs(patchJobs.map(j => j.id === job.id ? {...j, newSN: e.target.value.toUpperCase()} : j))} className="w-full bg-[#000810] border border-slate-800 rounded-xl px-4 py-3 font-mono text-base text-white outline-none focus:border-schahl-light-blue transition-all" placeholder="Ziel-SN..." />
+                                                                    <input type="text" value={job.newSN} onChange={e => setPatchJobs(patchJobs.map(j => j.id === job.id ? {...j, newSN: e.target.value.toUpperCase()} : j))} className="w-full bg-[#000810] border border-slate-800 rounded-xl px-4 py-3 font-mono text-base text-white outline-none focus:border-schahl-light-blue transition-all" placeholder="Eingeben..." />
                                                                 </div>
                                                                 <NetworkSelector label="Ziel-Netzwerk einstellen" value={job.newNetwork} onChange={v => setPatchJobs(patchJobs.map(j => j.id === job.id ? {...j, newNetwork: v} : j))} />
                                                             </div>
-                                                            {patchJobs.length > 1 && <button onClick={() => setPatchJobs(patchJobs.filter(j => j.id !== job.id))} className="absolute -top-3 -right-3 p-2 bg-slate-900 border border-slate-800 rounded-full text-slate-700 hover:text-red-500 transition-all shadow-xl"><Trash2 size={14}/></button>}
+                                                            {patchJobs.length > 1 && <button onClick={() => setPatchJobs(patchJobs.filter(j => j.id !== job.id))} className="absolute -top-3 -right-3 p-2 bg-slate-900 border border-slate-800 rounded-full text-slate-700 hover:text-red-500 shadow-xl transition-all"><Trash2 size={14}/></button>}
                                                         </div>
                                                     ))}
                                                 </div>
@@ -390,7 +388,7 @@
                                 <div className="lg:col-span-4 flex flex-col space-y-6">
                                     <div className="card-navy p-10 text-center border border-schahl-light-blue/10 flex flex-col justify-between shadow-2xl h-full sticky top-12">
                                         <div className="space-y-8">
-                                            <div className="p-8 bg-schahl-blue/30 rounded-full w-24 h-24 mx-auto flex items-center justify-center border border-schahl-light-blue/20 shadow-inner">
+                                            <div className="p-8 bg-schahl-blue/30 rounded-full w-24 h-24 mx-auto flex items-center justify-center border border-schahl-light-blue/20">
                                                 {isDone ? <CheckCircle2 size={48} className="text-emerald-400" /> : <Settings size={48} className="text-schahl-light-blue animate-spin-slow" />}
                                             </div>
                                             <div>
@@ -407,22 +405,22 @@
                                             </button>
                                             
                                             {isDone && dlUrl && (
-                                                <a href={dlUrl} download={file.name.replace('.map', '_gepatched.map')} className="flex items-center justify-center w-full py-6 bg-white text-navy font-black text-[11px] tracking-[0.2em] rounded-2xl animate-bounce shadow-2xl uppercase hover:bg-slate-100 transition-colors">
+                                                <a href={dlUrl} download={file.name.replace('.map', '_gepatched.map')} className="flex items-center justify-center w-full py-6 bg-schahl-yellow text-black font-black text-[12px] tracking-[0.2em] rounded-2xl shadow-2xl uppercase hover:scale-105 transition-all animate-pulse">
                                                     <Download className="mr-3" size={18} /> DOWNLOAD DATEI
                                                 </a>
                                             )}
                                             
-                                            <button onClick={() => {setFile(null); setIsDone(false); setDlUrl(null);}} className="text-slate-600 text-[9px] font-black uppercase tracking-[0.4em] hover:text-red-400 transition-colors mt-4">DATEI WECHSELN</button>
+                                            <button onClick={() => {setFile(null); setIsDone(false); setDlUrl(null);}} className="text-slate-600 text-[9px] font-black uppercase tracking-[0.4em] hover:text-red-400 transition-colors mt-4">ABBRECHEN / NEU</button>
                                         </div>
                                     </div>
                                     
                                     <div className="bg-schahl-blue/20 rounded-2xl p-6 border border-schahl-light-blue/10 space-y-4">
                                         <div className="flex gap-3 mb-1">
                                             <Wifi size={16} className="text-schahl-light-blue shrink-0 mt-0.5" />
-                                            <h5 className="text-[10px] font-black uppercase tracking-widest text-white">Netzwerk Status</h5>
+                                            <h5 className="text-[10px] font-black uppercase tracking-widest text-white">Netzwerk Info</h5>
                                         </div>
                                         <p className="text-[11px] text-slate-400 leading-relaxed italic">
-                                            Neue Leuchten befinden sich oft im <span className="text-white font-bold">FDN (Factory Default Network)</span>. Verwenden Sie den Wireless Adapter im Commissioner, um sie zu finden, und stellen Sie das Ziel-Netzwerk im Patcher ein, damit die Synchronisierung nach dem Patch reibungslos funktioniert.
+                                            Das <span className="text-white font-bold">FDN (Factory Default Network)</span> hat keine Nummerierung. Wählen Sie FDN, wenn die Leuchte noch im Werkszustand ist. Der Name der Leuchte wird beim Tausch nur geändert, wenn er der alten SN entsprach.
                                         </p>
                                     </div>
                                 </div>
@@ -430,7 +428,7 @@
                         )}
                         
                         <footer className="text-center py-20 opacity-30">
-                            <p className="text-[10px] font-black tracking-[1.5em] text-slate-500 uppercase italic">SchahlLED GmbH • Professional Lighting System Utility</p>
+                            <p className="text-[10px] font-black tracking-[1.5em] text-slate-500 uppercase italic">SchahlLED GmbH • Professional Patcher Utility</p>
                         </footer>
                     </div>
                 </div>
