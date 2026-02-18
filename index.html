@@ -211,7 +211,7 @@
             const selected = options.find(o => o.value === value);
 
             return (
-                <div className="relative w-full" ref={ref}>
+                <div className="relative w-full" ref={ref} style={{ zIndex: isOpen ? 9999 : 1 }}>
                     <div onClick={() => setIsOpen(!isOpen)} className="input-bezel rounded-xl px-6 py-4 text-white font-mono cursor-pointer flex justify-between items-center hover:border-blue-400 transition-all">
                         <span className={!selected ? 'text-slate-500' : ''}>{selected ? selected.value : placeholder}</span>
                         <ChevronDown size={18} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -222,7 +222,9 @@
                                 <input autoFocus type="text" placeholder="Suchen (letzte Ziffern)..." value={search} onChange={e => setSearch(e.target.value)} className="w-full bg-black/60 rounded-lg px-4 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-blue-500" />
                             </div>
                             <div className="max-h-60 overflow-y-auto help-scroll bg-slate-900">
-                                {filtered.map(opt => (
+                                {filtered.length === 0 ? (
+                                    <div className="p-4 text-center text-slate-500 text-xs italic">Keine Treffer</div>
+                                ) : filtered.map(opt => (
                                     <div key={opt.value} onClick={() => { onChange(opt.value); setIsOpen(false); setSearch(''); }} className={`px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-blue-500/10 ${value === opt.value ? 'bg-blue-500/20 text-blue-400' : 'text-slate-300'}`}>
                                         <div className="flex flex-col">
                                             <span className="font-mono text-sm">{opt.value}</span>
@@ -247,7 +249,7 @@
                         <div>
                             <p className="text-[10px] text-slate-500 uppercase font-black">Patrick Hartmann (Service)</p>
                             <p className="text-white font-bold">Mobil: 0176 80536466</p>
-                            <p className="text-white font-bold">Festnetz (Handy): 089 9011982-36</p>
+                            <p className="text-white font-bold">Handy: -36</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-4 bg-black/40 p-4 rounded-xl border border-white/5 shadow-inner">
@@ -388,38 +390,83 @@
                 r.onload = (ev) => {
                     const content = ev.target.result;
                     setFile({ name: f.name, content });
-                    const netRegex = /<pmu\s+[^>]*sn="([^"]+)"\s+[^>]*network="([^"]+)"/gi;
-                    const matches = []; let match;
-                    while ((match = netRegex.exec(content)) !== null) matches.push({ value: match[1], network: match[2] });
-                    setSerialOptions(Array.from(new Map(matches.map(m => [m.value, m])).values()));
+                    
+                    // Verbesserter Regex: Sucht nach sn="..." und network="..." unabhängig von der Reihenfolge
+                    const pmuRegex = /<pmu\s+([^>]+)>/gi;
+                    const matches = []; 
+                    let match;
+                    while ((match = pmuRegex.exec(content)) !== null) {
+                        const attrs = match[1];
+                        const snMatch = attrs.match(/sn="([^"]+)"/i);
+                        const netMatch = attrs.match(/network="([^"]+)"/i);
+                        if (snMatch) {
+                            matches.push({ 
+                                value: snMatch[1], 
+                                network: netMatch ? netMatch[1] : 'N/A' 
+                            });
+                        }
+                    }
+                    
+                    const unique = Array.from(new Map(matches.map(m => [m.value, m])).values());
+                    setSerialOptions(unique);
+                    
+                    // Reset State bei neuer Datei
+                    setIsDone(false);
+                    setDlUrl(null);
                 };
                 r.readAsText(f);
             };
 
             const runConfig = () => {
                 let res = file.content;
+                
+                // 1. SN Patching
                 patchJobs.forEach(job => {
-                    if (job.oldSN && job.newSN) res = res.replace(new RegExp(`sn\\s*=\\s*"${job.oldSN}"`, 'gi'), `sn="${job.newSN}"`);
+                    if (job.oldSN && job.newSN) {
+                        // Globaler Tausch aller Vorkommen in der Datei
+                        const r = new RegExp(`sn="${job.oldSN}"`, 'gi');
+                        res = res.replace(r, `sn="${job.newSN}"`);
+                    }
                 });
+
+                // 2. DH Transfer (Kopieren der Kalibrier-Attribute)
                 dhJobs.forEach(job => {
                     if (!job.sourceSN || !job.targetSN) return;
-                    const sourceMatch = res.match(new RegExp(`<pmu[^>]*sn="${job.sourceSN}"([^>]*)>`, 'i'));
+                    
+                    // Suche PMU Block der Quelle
+                    const sourceRegex = new RegExp(`<pmu[^>]*sn="${job.sourceSN}"([^>]*)>`, 'i');
+                    const sourceMatch = res.match(sourceRegex);
+                    
                     if (sourceMatch) {
-                        const attrs = sourceMatch[1].match(/(cal_[^=]+|lux_[^=]+|occupied_[^=]+|vacant_[^=]+)="[^"]*"/gi);
-                        if (attrs) {
-                            res = res.replace(new RegExp(`<pmu[^>]*sn="${job.targetSN}"([^>]*)>`, 'i'), (full, cAttrs) => {
-                                let updated = cAttrs;
-                                attrs.forEach(a => {
-                                    const name = a.split('=')[0];
-                                    const r = new RegExp(`${name}="[^"]*"`, 'i');
-                                    updated = updated.match(r) ? updated.replace(r, a) : updated + ` ${a}`;
+                        const sourceAttrsStr = sourceMatch[1];
+                        // Extrahiere alle DH-relevanten Attribute
+                        const dhAttrRegex = /(cal_[^=]+|lux_[^=]+|occupied_[^=]+|vacant_[^=]+|lux_target|cal_min|cal_max)="([^"]*)"/gi;
+                        const attrsToCopy = sourceAttrsStr.match(dhAttrRegex);
+                        
+                        if (attrsToCopy) {
+                            // Ersetze im Ziel-Block
+                            const targetRegex = new RegExp(`<pmu([^>]*)sn="${job.targetSN}"([^>]*)>`, 'i');
+                            res = res.replace(targetRegex, (full, beforeSn, afterSn) => {
+                                let combinedAttrs = beforeSn + ' ' + afterSn;
+                                attrsToCopy.forEach(newAttr => {
+                                    const attrName = newAttr.split('=')[0];
+                                    const rAttr = new RegExp(`${attrName}="[^"]*"`, 'i');
+                                    if (combinedAttrs.match(rAttr)) {
+                                        combinedAttrs = combinedAttrs.replace(rAttr, newAttr);
+                                    } else {
+                                        combinedAttrs += ` ${newAttr}`;
+                                    }
                                 });
-                                return `<pmu sn="${job.targetSN}"${updated}>`;
+                                // Bereinige doppelte Leerzeichen
+                                combinedAttrs = combinedAttrs.replace(/\s+/g, ' ').trim();
+                                return `<pmu sn="${job.targetSN}" ${combinedAttrs}>`;
                             });
                         }
                     }
                 });
-                setDlUrl(URL.createObjectURL(new Blob([res], { type: 'text/plain' })));
+
+                const blob = new Blob([res], { type: 'text/plain' });
+                setDlUrl(URL.createObjectURL(blob));
                 setIsDone(true);
             };
 
@@ -552,7 +599,7 @@
                     {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
                     {showAdminLock && <PatternLock onSuccess={() => { setIsAdminMode(true); setView('admin'); setShowAdminLock(false); }} onClose={() => setShowAdminLock(false)} />}
                     <footer className="text-center py-20 opacity-30 border-t border-white/5 bg-black/80">
-                        <p className="text-[10px] font-black tracking-[3em] text-slate-600 uppercase ml-[3em]">SchahlLED GmbH • Map-Configurator v6.2</p>
+                        <p className="text-[10px] font-black tracking-[3em] text-slate-600 uppercase ml-[3em]">SchahlLED GmbH • Map-Configurator v6.3</p>
                     </footer>
                 </div>
             );
