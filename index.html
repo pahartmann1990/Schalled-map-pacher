@@ -36,6 +36,7 @@
             overflow-x: hidden;
         }
 
+        /* --- BACKGROUND --- */
         .sky-wrapper {
             position: fixed;
             inset: 0;
@@ -52,11 +53,11 @@
             width: 200%;
             height: 200%;
             background: 
-                radial-gradient(ellipse at center, rgba(100, 150, 255, 0.12) 0%, transparent 60%),
-                radial-gradient(ellipse at 40% 40%, rgba(138, 43, 226, 0.08) 0%, transparent 40%),
-                radial-gradient(ellipse at 60% 60%, rgba(0, 178, 255, 0.05) 0%, transparent 50%);
+                radial-gradient(ellipse at center, rgba(100, 150, 255, 0.15) 0%, transparent 60%),
+                radial-gradient(ellipse at 40% 40%, rgba(138, 43, 226, 0.1) 0%, transparent 40%),
+                radial-gradient(ellipse at 60% 60%, rgba(0, 178, 255, 0.08) 0%, transparent 50%);
             transform: rotate(-25deg);
-            filter: blur(150px);
+            filter: blur(140px);
         }
 
         .star {
@@ -71,6 +72,7 @@
         }
         .twinkle { animation: twinkling var(--dur) infinite ease-in-out; }
 
+        /* --- UI COMPONENTS --- */
         .cc-header {
             background: #00040D;
             border-bottom: 2px solid rgba(255, 255, 255, 0.1);
@@ -136,10 +138,10 @@
         .help-scroll::-webkit-scrollbar-thumb { background: var(--schahl-blue); border-radius: 10px; border: 3px solid #00040D; }
 
         .pattern-dot {
-            width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); transition: all 0.2s;
+            width: 35px; height: 35px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); transition: all 0.2s;
             cursor: pointer;
         }
-        .pattern-dot.active { background: var(--schahl-blue); border-color: white; box-shadow: 0 0 15px var(--schahl-blue); }
+        .pattern-dot.active { background: var(--schahl-blue); border-color: white; box-shadow: 0 0 20px var(--schahl-blue); }
 
         .step-path {
             position: relative; padding-left: 45px; border-left: 2px solid rgba(0, 178, 255, 0.3); margin-bottom: 40px;
@@ -169,14 +171,14 @@
         // --- BACKGROUND ---
         const SkyBackground = () => {
             const stars = useMemo(() => {
-                return Array.from({ length: 800 }).map((_, i) => ({
+                return Array.from({ length: 850 }).map((_, i) => ({
                     id: i,
                     top: `${Math.random() * 100}%`,
                     left: `${Math.random() * 100}%`,
-                    size: Math.random() * 2 + 0.3,
-                    color: Math.random() > 0.8 ? (Math.random() > 0.5 ? '#9bb0ff' : '#ffcc33') : '#ffffff',
-                    twinkle: Math.random() > 0.4,
-                    dur: `${Math.random() * 5 + 2}s`
+                    size: Math.random() * 2.2 + 0.3,
+                    color: Math.random() > 0.85 ? (Math.random() > 0.5 ? '#9bb0ff' : '#ffcc33') : '#ffffff',
+                    twinkle: Math.random() > 0.35,
+                    dur: `${Math.random() * 6 + 2}s`
                 }));
             }, []);
 
@@ -207,7 +209,9 @@
                 return () => document.removeEventListener("mousedown", handleClickOutside);
             }, []);
 
-            const filtered = options.filter(o => o.value.toUpperCase().includes(search.toUpperCase()));
+            const filtered = options.filter(o => 
+                o.value.toUpperCase().includes(search.toUpperCase())
+            );
             const selected = options.find(o => o.value === value);
 
             return (
@@ -217,17 +221,28 @@
                         <ChevronDown size={18} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                     </div>
                     {isOpen && (
-                        <div className="absolute z-[10000] w-full mt-2 bg-slate-900 border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                            <div className="p-4 border-b border-white/5">
-                                <input autoFocus type="text" placeholder="Suchen (letzte Ziffern)..." value={search} onChange={e => setSearch(e.target.value)} className="w-full bg-black/60 rounded-lg px-4 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-blue-500" />
+                        <div className="absolute z-[10000] w-full mt-2 bg-[#00040D] border border-blue-500/30 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.9)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                            <div className="p-4 border-b border-white/10 bg-black/40">
+                                <input 
+                                    autoFocus 
+                                    type="text" 
+                                    placeholder="Suche..." 
+                                    value={search} 
+                                    onChange={e => setSearch(e.target.value)} 
+                                    className="w-full bg-black/60 rounded-lg px-4 py-3 text-sm text-white outline-none focus:ring-1 focus:ring-blue-500 border border-white/5" 
+                                />
                             </div>
-                            <div className="max-h-60 overflow-y-auto help-scroll bg-slate-900">
+                            <div className="max-h-64 overflow-y-auto help-scroll bg-[#00040D]">
                                 {filtered.length === 0 ? (
-                                    <div className="p-4 text-center text-slate-500 text-xs italic">Keine Treffer</div>
+                                    <div className="p-6 text-center text-slate-500 text-xs italic uppercase tracking-widest">Keine Treffer</div>
                                 ) : filtered.map(opt => (
-                                    <div key={opt.value} onClick={() => { onChange(opt.value); setIsOpen(false); setSearch(''); }} className={`px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-blue-500/10 ${value === opt.value ? 'bg-blue-500/20 text-blue-400' : 'text-slate-300'}`}>
+                                    <div 
+                                        key={opt.value} 
+                                        onClick={() => { onChange(opt.value); setIsOpen(false); setSearch(''); }} 
+                                        className={`px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-blue-500/20 ${value === opt.value ? 'bg-blue-500/30 text-blue-400' : 'text-slate-300'}`}
+                                    >
                                         <div className="flex flex-col">
-                                            <span className="font-mono text-sm">{opt.value}</span>
+                                            <span className="font-mono text-sm font-bold">{opt.value}</span>
                                             {opt.network && <span className="text-[10px] text-slate-500 uppercase font-black">{opt.network}</span>}
                                         </div>
                                         {value === opt.value && <Check size={16} />}
@@ -257,13 +272,6 @@
                         <div>
                             <p className="text-[10px] text-slate-500 uppercase font-black">Daniel Seehaus (Technischer Leiter)</p>
                             <p className="text-white font-bold">Zentrale: 089 9011982-20</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-4 bg-black/40 p-4 rounded-xl border border-white/5 shadow-inner">
-                        <Activity size={24} className="text-blue-400"/>
-                        <div>
-                            <p className="text-[10px] text-slate-500 uppercase font-black">SchahlLED Zentrale</p>
-                            <p className="text-white font-bold">089 9011982-0</p>
                         </div>
                     </div>
                 </div>
@@ -352,7 +360,7 @@
             };
 
             return (
-                <div className="fixed inset-0 z-[8000] bg-black/90 backdrop-blur-xl flex items-center justify-center p-8">
+                <div className="fixed inset-0 z-[8000] bg-black/95 backdrop-blur-xl flex items-center justify-center p-8">
                     <div className="glass-card p-16 text-center space-y-12">
                         <Lock className="mx-auto text-blue-400" size={64} />
                         <h2 className="text-2xl font-black uppercase tracking-widest text-white">ADMIN AUTH</h2>
@@ -367,13 +375,12 @@
             );
         };
 
-        // --- MAIN APP ---
         const App = () => {
             const [file, setFile] = useState(null);
             const [showHelp, setShowHelp] = useState(false);
             const [showAdminLock, setShowAdminLock] = useState(false);
             const [isAdminMode, setIsAdminMode] = useState(false);
-            const [view, setView] = useState('config'); // 'config' or 'admin'
+            const [view, setView] = useState('config'); 
             
             const [activeTab, setActiveTab] = useState('patch');
             const [serialOptions, setSerialOptions] = useState([]);
@@ -391,7 +398,7 @@
                     const content = ev.target.result;
                     setFile({ name: f.name, content });
                     
-                    // Verbesserter Regex: Sucht nach sn="..." und network="..." unabhängig von der Reihenfolge
+                    // PMU SN & Network extraction mit flexiblem Regex
                     const pmuRegex = /<pmu\s+([^>]+)>/gi;
                     const matches = []; 
                     let match;
@@ -409,8 +416,6 @@
                     
                     const unique = Array.from(new Map(matches.map(m => [m.value, m])).values());
                     setSerialOptions(unique);
-                    
-                    // Reset State bei neuer Datei
                     setIsDone(false);
                     setDlUrl(null);
                 };
@@ -423,13 +428,12 @@
                 // 1. SN Patching
                 patchJobs.forEach(job => {
                     if (job.oldSN && job.newSN) {
-                        // Globaler Tausch aller Vorkommen in der Datei
                         const r = new RegExp(`sn="${job.oldSN}"`, 'gi');
                         res = res.replace(r, `sn="${job.newSN}"`);
                     }
                 });
 
-                // 2. DH Transfer (Kopieren der Kalibrier-Attribute)
+                // 2. DH Transfer
                 dhJobs.forEach(job => {
                     if (!job.sourceSN || !job.targetSN) return;
                     
@@ -439,12 +443,10 @@
                     
                     if (sourceMatch) {
                         const sourceAttrsStr = sourceMatch[1];
-                        // Extrahiere alle DH-relevanten Attribute
                         const dhAttrRegex = /(cal_[^=]+|lux_[^=]+|occupied_[^=]+|vacant_[^=]+|lux_target|cal_min|cal_max)="([^"]*)"/gi;
                         const attrsToCopy = sourceAttrsStr.match(dhAttrRegex);
                         
                         if (attrsToCopy) {
-                            // Ersetze im Ziel-Block
                             const targetRegex = new RegExp(`<pmu([^>]*)sn="${job.targetSN}"([^>]*)>`, 'i');
                             res = res.replace(targetRegex, (full, beforeSn, afterSn) => {
                                 let combinedAttrs = beforeSn + ' ' + afterSn;
@@ -457,7 +459,6 @@
                                         combinedAttrs += ` ${newAttr}`;
                                     }
                                 });
-                                // Bereinige doppelte Leerzeichen
                                 combinedAttrs = combinedAttrs.replace(/\s+/g, ' ').trim();
                                 return `<pmu sn="${job.targetSN}" ${combinedAttrs}>`;
                             });
@@ -475,13 +476,15 @@
                     <SkyBackground />
                     <header className="cc-header flex items-center justify-between px-16">
                         <div className="flex items-center gap-14">
-                            <a href="#" className="brand-logo-container"><img src="https://www.thorlux.de/assets/images/schahlled-logo-colour-c4e9ae384335c5a599815fb347bd845a.svg" className="brand-logo-img" /></a>
+                            <div className="brand-logo-container">
+                                <img src="https://www.thorlux.de/assets/images/schahlled-logo-colour-c4e9ae384335c5a599815fb347bd845a.svg" className="brand-logo-img" />
+                            </div>
                             <div className="flex items-center gap-6">
                                 <img src="https://www.schahlled-control-center.de/build/img/schahlled/brand-logo.b4d1183a.svg" className="h-10" />
                                 {isAdminMode && (
                                     <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 ml-10">
-                                        <button onClick={() => setView('config')} className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all ${view === 'config' ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}><LayoutDashboard size={14}/> Config</button>
-                                        <button onClick={() => setView('admin')} className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all ${view === 'admin' ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}><FileText size={14}/> Service</button>
+                                        <button onClick={() => setView('config')} className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all ${view === 'config' ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}><LayoutDashboard size={14}/> Configurator</button>
+                                        <button onClick={() => setView('admin')} className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all ${view === 'admin' ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}><FileText size={14}/> Admin (Service)</button>
                                     </div>
                                 )}
                             </div>
@@ -522,19 +525,19 @@
                                         <input type="file" accept=".map" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileUpload} />
                                     </div>
                                 ) : (
-                                    <div className="grid lg:grid-cols-12 gap-16 animate-in fade-in duration-500">
+                                    <div className="grid lg:grid-cols-12 gap-16 animate-in fade-in duration-500 overflow-visible">
                                         <div className="lg:col-span-8 glass-card overflow-visible flex flex-col border-white/5">
                                             <div className="flex bg-black/40 border-b border-white/10 rounded-t-3xl overflow-hidden">
                                                 <button onClick={() => setActiveTab('patch')} className={`flex-1 py-8 text-xs font-black uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-4 ${activeTab === 'patch' ? 'text-blue-400 bg-blue-500/10 border-b-2 border-blue-500' : 'text-slate-500 hover:text-white'}`}><Zap size={18}/> SN Patching</button>
                                                 <button onClick={() => setActiveTab('dh')} className={`flex-1 py-8 text-xs font-black uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-4 ${activeTab === 'dh' ? 'text-blue-400 bg-blue-500/10 border-b-2 border-blue-500' : 'text-slate-500 hover:text-white'}`}><Sun size={18}/> DH Transfer</button>
                                             </div>
                                             
-                                            <div className="p-12 space-y-10 min-h-[500px]">
+                                            <div className="p-12 space-y-10 min-h-[500px] overflow-visible">
                                                 {activeTab === 'patch' ? (
                                                     <>
                                                         <button onClick={() => setPatchJobs([...patchJobs, { id: Date.now(), oldSN: '', newSN: '' }])} className="w-full py-6 input-bezel text-blue-400 font-black rounded-2xl uppercase tracking-[0.3em] hover:brightness-125 transition-all shadow-xl">+ SN-Tausch hinzufügen</button>
                                                         {patchJobs.map((job) => (
-                                                            <div key={job.id} className="bg-black/40 p-8 rounded-3xl border border-white/5 flex items-center gap-10 relative">
+                                                            <div key={job.id} className="bg-black/40 p-8 rounded-3xl border border-white/5 flex items-center gap-10 relative overflow-visible">
                                                                 <div className="flex-1 space-y-3">
                                                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Quelle (Datei)</label>
                                                                     <SearchableSelect options={serialOptions} value={job.oldSN} onChange={val => setPatchJobs(patchJobs.map(j => j.id === job.id ? {...j, oldSN: val} : j))} />
@@ -544,7 +547,7 @@
                                                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ersatz (Neu)</label>
                                                                     <input type="text" value={job.newSN} onChange={e => setPatchJobs(patchJobs.map(j => j.id === job.id ? {...j, newSN: e.target.value.toUpperCase()} : j))} className="w-full input-bezel rounded-xl px-6 py-4 text-white font-mono outline-none focus:border-blue-500 transition-all" placeholder="SN123456" />
                                                                 </div>
-                                                                <button onClick={() => setPatchJobs(patchJobs.filter(j => j.id !== job.id))} className="mt-6 text-slate-700 hover:text-red-500"><Trash2 size={20}/></button>
+                                                                <button onClick={() => setPatchJobs(patchJobs.filter(j => j.id !== job.id))} className="mt-6 text-slate-700 hover:text-red-500 transition-colors"><Trash2 size={20}/></button>
                                                             </div>
                                                         ))}
                                                     </>
@@ -552,7 +555,7 @@
                                                     <>
                                                         <button onClick={() => setDhJobs([...dhJobs, { id: Date.now(), sourceSN: '', targetSN: '' }])} className="w-full py-6 input-bezel text-blue-400 font-black rounded-2xl uppercase tracking-[0.3em] hover:brightness-125 transition-all shadow-xl">+ DH-Transfer hinzufügen</button>
                                                         {dhJobs.map((job) => (
-                                                            <div key={job.id} className="bg-black/40 p-8 rounded-3xl border border-white/5 flex items-center gap-10 relative">
+                                                            <div key={job.id} className="bg-black/40 p-8 rounded-3xl border border-white/5 flex items-center gap-10 relative overflow-visible">
                                                                 <div className="flex-1 space-y-3">
                                                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Quelle (Kalibrierung)</label>
                                                                     <SearchableSelect options={serialOptions} value={job.sourceSN} onChange={val => setDhJobs(dhJobs.map(j => j.id === job.id ? {...j, sourceSN: val} : j))} />
@@ -562,7 +565,7 @@
                                                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ziel (Übernahme)</label>
                                                                     <SearchableSelect options={serialOptions} value={job.targetSN} onChange={val => setDhJobs(dhJobs.map(j => j.id === job.id ? {...j, targetSN: val} : j))} />
                                                                 </div>
-                                                                <button onClick={() => setDhJobs(dhJobs.filter(j => j.id !== job.id))} className="mt-6 text-slate-700 hover:text-red-500"><Trash2 size={20}/></button>
+                                                                <button onClick={() => setDhJobs(dhJobs.filter(j => j.id !== job.id))} className="mt-6 text-slate-700 hover:text-red-500 transition-colors"><Trash2 size={20}/></button>
                                                             </div>
                                                         ))}
                                                     </>
@@ -598,8 +601,9 @@
 
                     {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
                     {showAdminLock && <PatternLock onSuccess={() => { setIsAdminMode(true); setView('admin'); setShowAdminLock(false); }} onClose={() => setShowAdminLock(false)} />}
+                    
                     <footer className="text-center py-20 opacity-30 border-t border-white/5 bg-black/80">
-                        <p className="text-[10px] font-black tracking-[3em] text-slate-600 uppercase ml-[3em]">SchahlLED GmbH • Map-Configurator v6.3</p>
+                        <p className="text-[10px] font-black tracking-[3em] text-slate-600 uppercase ml-[3em]">SchahlLED GmbH • Map-Configurator v6.5</p>
                     </footer>
                 </div>
             );
