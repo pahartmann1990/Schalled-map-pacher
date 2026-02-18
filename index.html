@@ -23,7 +23,6 @@
             --schahl-main-blue: #0089D0;
             --schahl-dark-blue: #0070B0;
             --schahl-navy: #000B18;
-            --schahl-yellow: #FFE14D;
             --cc-bg: #001529;
         }
         
@@ -52,7 +51,7 @@
         }
 
         .cc-header {
-            background: rgba(0, 11, 24, 0.9);
+            background: rgba(0, 11, 24, 0.92);
             backdrop-filter: blur(15px);
             border-bottom: 1px solid rgba(255,255,255,0.08);
             min-height: 80px;
@@ -114,6 +113,12 @@
             white-space: nowrap;
         }
 
+        .admin-lock-overlay {
+            background: rgba(0, 11, 24, 0.7);
+            backdrop-filter: blur(4px);
+            border: 1px dashed rgba(255,255,255,0.1);
+        }
+
         @keyframes pulse-cc {
             0% { opacity: 0.5; }
             50% { opacity: 1; }
@@ -130,8 +135,8 @@
         import { createRoot } from 'react-dom/client';
         import { 
             Upload, Zap, Download, CheckCircle2, 
-            Search, ChevronDown, Settings, 
-            HardDrive, ArrowRight, Plus, Trash2, Layout, HelpCircle, LogIn, FileText, Info
+            Search, ChevronDown, Settings, Lock, Unlock,
+            HardDrive, ArrowRight, Plus, Trash2, Layout, HelpCircle, LogIn, FileText, Info, EyeOff
         } from 'lucide-react';
 
         const CALIBRATION_KEYS = [
@@ -161,7 +166,6 @@
                 if (attrRegex.test(newTag)) {
                     newTag = newTag.replace(attrRegex, `${key}="${value}"`);
                 } else {
-                    // Sicherstellen, dass das Leerzeichen vor /> erhalten bleibt
                     const isSelfClosing = newTag.endsWith('/>');
                     const insertPos = isSelfClosing ? newTag.lastIndexOf('/>') : newTag.lastIndexOf('>');
                     newTag = newTag.slice(0, insertPos).trim() + ` ${key}="${value}"` + (isSelfClosing ? ' />' : '>');
@@ -187,7 +191,7 @@
             return (
                 <div className="relative z-[150]" ref={ref}>
                     {label && <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 block">{label}</label>}
-                    <div onClick={() => setOpen(!open)} className={`w-full bg-black/40 border rounded px-3 py-2 flex justify-between items-center cursor-pointer transition-all ${open ? 'border-blue-500' : 'border-slate-800'}`}>
+                    <div onClick={() => setOpen(!open)} className={`w-full bg-black/40 border rounded px-3 py-2 flex justify-between items-center cursor-pointer transition-all ${open ? 'border-blue-500 shadow-lg shadow-blue-500/10' : 'border-slate-800 hover:border-slate-700'}`}>
                         <span className={`font-mono text-xs truncate ${selected ? "text-white font-bold" : "text-slate-600 italic"}`}>
                             {selected ? selected.value : "Wählen..."}
                         </span>
@@ -214,6 +218,7 @@
             const [file, setFile] = useState(null);
             const [extracted, setExtracted] = useState([]);
             const [mode, setMode] = useState('patch');
+            const [isAdmin, setIsAdmin] = useState(false); // Neuer Admin Status
             const [patchJobs, setPatchJobs] = useState([{ id: Date.now(), oldSN: '', newSN: '' }]);
             const [dhJobs, setDhJobs] = useState([{ id: Date.now(), srcSN: '', dstSN: '' }]);
             const [isDone, setIsDone] = useState(false);
@@ -277,7 +282,7 @@
                 <div className="min-h-screen flex flex-col relative overflow-hidden">
                     <div className="spotlight"></div>
 
-                    {/* CC HEADER BAR - BEREINIGT */}
+                    {/* CC HEADER BAR */}
                     <header className="cc-header sticky top-0 z-[500] flex items-center justify-between px-10">
                         <div className="flex items-center gap-10">
                             <a href="https://www.thorlux.de/" target="_blank" className="cc-logo-link bg-white px-6 py-2.5 rounded shadow-lg">
@@ -290,11 +295,14 @@
                         </div>
                         
                         <div className="flex items-center gap-6">
-                            <button className="text-[10px] font-bold text-slate-600 cursor-default flex items-center gap-2 opacity-50" title="Funktion folgt">
-                                <HelpCircle size={14}/> HILFE (WIP)
+                            <button className="text-[10px] font-bold text-slate-700 cursor-default flex items-center gap-2 opacity-30" title="In Vorbereitung">
+                                <HelpCircle size={14}/> HILFE
                             </button>
-                            <button className="bg-blue-600/5 border border-blue-600/20 text-blue-500/80 px-4 py-2 rounded text-[10px] font-black hover:bg-blue-600 hover:text-white transition-all flex items-center gap-2">
-                                <LogIn size={14}/> ADMIN
+                            <button 
+                                onClick={() => setIsAdmin(!isAdmin)}
+                                className={`px-5 py-2 rounded text-[10px] font-black transition-all flex items-center gap-2 border ${isAdmin ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-900 text-blue-500 border-blue-600/30 hover:border-blue-500'}`}
+                            >
+                                {isAdmin ? <Unlock size={14}/> : <Lock size={14}/>} {isAdmin ? 'ADMIN MODUS' : 'ADMIN LOGIN'}
                             </button>
                         </div>
                     </header>
@@ -312,8 +320,8 @@
                                     <div className="w-16 h-16 bg-blue-600/10 rounded-full flex items-center justify-center mb-8 border border-blue-600/20 group-hover:bg-blue-600/20">
                                         <Upload className="w-8 h-8 text-blue-500" />
                                     </div>
-                                    <h2 className="text-2xl font-bold text-white tracking-tight text-center">Projekt (.MAP) laden</h2>
-                                    <p className="text-slate-500 text-xs mt-4 italic">Importieren Sie Ihre Commissioner-Datei.</p>
+                                    <h2 className="text-2xl font-bold text-white tracking-tight text-center uppercase tracking-widest">Projekt (.MAP) laden</h2>
+                                    <p className="text-slate-500 text-xs mt-4 italic">Wählen Sie die Datei für die Wartungskonsole.</p>
                                     <input type="file" accept=".map" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => {
                                         const f = e.target.files[0];
                                         if (f) { const r = new FileReader(); r.onload = (ev) => setFile({ name: f.name, content: ev.target.result }); r.readAsText(f); }
@@ -333,69 +341,98 @@
                                     </div>
 
                                     <div className="lg:col-span-8 space-y-6">
-                                        <div className="card-cc-dark p-8">
-                                            {mode === 'patch' ? (
-                                                <div className="space-y-10">
-                                                    <div className="flex justify-between items-center">
-                                                        <div className="flex items-center">
-                                                            <div className="batch-arrow-label mr-6">Hardware-Batch</div>
-                                                            <h3 className="text-white font-black text-xs uppercase tracking-widest flex items-center gap-3"><Layout size={18} className="text-blue-500"/> ID-Ersetzung</h3>
-                                                        </div>
-                                                        <button onClick={() => setPatchJobs([...patchJobs, { id: Date.now(), oldSN: '', newSN: '' }])} disabled={patchJobs.length >= 10} className="text-[10px] font-black bg-blue-600/20 text-blue-400 border border-blue-600/40 px-4 py-2 rounded hover:bg-blue-600 hover:text-white transition-all uppercase flex items-center gap-2"><Plus size={14}/> Add</button>
-                                                    </div>
-                                                    
-                                                    <div className="space-y-4">
-                                                        {patchJobs.map((job) => (
-                                                            <div key={job.id} className="bg-black/40 p-6 rounded border border-white/5 grid grid-cols-12 gap-6 relative group hover:border-blue-600/30">
-                                                                <div className="col-span-5">
-                                                                    <SearchableSelect label="ALT (IN PLAN)" options={extracted} value={job.oldSN} onChange={v => setPatchJobs(patchJobs.map(j => j.id === job.id ? {...j, oldSN: v} : j))} />
-                                                                </div>
-                                                                <div className="col-span-1 flex justify-center pt-8 text-slate-700"><ArrowRight size={24}/></div>
-                                                                <div className="col-span-6">
-                                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">NEUE HARDWARE SN</label>
-                                                                    <input type="text" value={job.newSN} onChange={e => setPatchJobs(patchJobs.map(j => j.id === job.id ? {...j, newSN: e.target.value.toUpperCase()} : j))} className="w-full bg-black/40 border border-slate-800 rounded px-3 py-2 font-mono text-xs text-white outline-none focus:border-blue-500" placeholder="SN..." />
-                                                                </div>
-                                                                {patchJobs.length > 1 && <button onClick={() => setPatchJobs(patchJobs.filter(j => j.id !== job.id))} className="absolute -top-2 -right-2 p-1.5 bg-slate-900 border border-slate-800 rounded-full text-slate-500 hover:text-red-500"><Trash2 size={12}/></button>}
-                                                            </div>
-                                                        ))}
-                                                    </div>
+                                        <div className="card-cc-dark p-8 relative overflow-hidden min-h-[400px]">
+                                            {!isAdmin ? (
+                                                <div className="absolute inset-0 admin-lock-overlay flex flex-col items-center justify-center p-12 text-center">
+                                                    <EyeOff size={48} className="text-slate-700 mb-6" />
+                                                    <h3 className="text-white font-bold text-lg mb-2 uppercase tracking-widest">Eingeschränkte Ansicht</h3>
+                                                    <p className="text-slate-500 text-xs leading-relaxed max-w-sm">
+                                                        Die Detail-Liste der zu patchenden Leuchten ist nur für Techniker im Admin-Modus sichtbar. <br/>Klicken Sie oben auf <b>ADMIN LOGIN</b> um fortzufahren.
+                                                    </p>
                                                 </div>
                                             ) : (
-                                                <div className="space-y-10">
-                                                    <div className="flex flex-col gap-6">
-                                                        <div className="flex justify-between items-center">
-                                                            <div className="flex items-center">
-                                                                <div className="batch-arrow-label mr-6">DH Kalibrierung</div>
-                                                                <h3 className="text-white font-black text-xs uppercase tracking-widest flex items-center gap-3"><Zap size={18} className="text-blue-500"/> Transfer</h3>
-                                                            </div>
-                                                            <button onClick={() => setDhJobs([...dhJobs, { id: Date.now(), srcSN: '', dstSN: '' }])} disabled={dhJobs.length >= 10} className="text-[10px] font-black bg-blue-600/20 text-blue-400 border border-blue-600/40 px-4 py-2 rounded hover:bg-blue-600 hover:text-white transition-all uppercase flex items-center gap-2"><Plus size={14}/> Add</button>
-                                                        </div>
-
-                                                        {/* INFO-BOX FÜR RELEVANTE ATTRIBUTE */}
-                                                        <div className="bg-blue-600/5 border border-blue-600/20 p-5 rounded-lg space-y-3">
-                                                            <div className="flex items-center gap-2 text-[10px] font-black text-blue-400 uppercase tracking-widest">
-                                                                <Info size={14}/> Folgende Attribute werden synchronisiert:
-                                                            </div>
-                                                            <div className="flex flex-wrap gap-1.5">
-                                                                {CALIBRATION_KEYS.map(k => <span key={k} className="key-badge">{k}</span>)}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="space-y-4">
-                                                        {dhJobs.map((job) => (
-                                                            <div key={job.id} className="bg-black/40 p-6 rounded border border-white/5 grid grid-cols-12 gap-8 relative group hover:border-blue-600/30">
-                                                                <div className="col-span-5">
-                                                                    <SearchableSelect label="QUELLE (BASIS)" options={extracted} value={job.srcSN} onChange={v => setDhJobs(dhJobs.map(j => j.id === job.id ? {...j, srcSN: v} : j))} />
+                                                <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2">
+                                                    {mode === 'patch' ? (
+                                                        <div className="space-y-10">
+                                                            <div className="flex flex-col gap-4">
+                                                                <div className="flex justify-between items-center">
+                                                                    <div className="flex items-center">
+                                                                        <div className="batch-arrow-label mr-6">Hardware-Batch</div>
+                                                                        <h3 className="text-white font-black text-xs uppercase tracking-widest flex items-center gap-3"><Layout size={18} className="text-blue-500"/> ID-Ersetzung</h3>
+                                                                    </div>
                                                                 </div>
-                                                                <div className="col-span-1 flex justify-center pt-8 text-blue-500/20"><Zap size={24}/></div>
-                                                                <div className="col-span-6">
-                                                                    <SearchableSelect label="ZIEL (ZUKÜNFTIG)" options={extracted} value={job.dstSN} onChange={v => setDhJobs(dhJobs.map(j => j.id === job.id ? {...j, dstSN: v} : j))} />
-                                                                </div>
-                                                                {dhJobs.length > 1 && <button onClick={() => setDhJobs(dhJobs.filter(j => j.id !== job.id))} className="absolute -top-2 -right-2 p-1.5 bg-slate-900 border border-slate-800 rounded-full text-slate-500 hover:text-red-500"><Trash2 size={12}/></button>}
+                                                                
+                                                                <button 
+                                                                    onClick={() => setPatchJobs([...patchJobs, { id: Date.now(), oldSN: '', newSN: '' }])} 
+                                                                    className="w-full py-4 border-2 border-dashed border-blue-600/30 rounded-lg text-[10px] font-black text-blue-400 hover:border-blue-500 hover:bg-blue-600/5 transition-all flex items-center justify-center gap-3 uppercase tracking-widest group"
+                                                                >
+                                                                    <Plus size={16} className="group-hover:scale-125 transition-transform"/> Eintrag für weitere Leuchten-Position hinzufügen
+                                                                </button>
                                                             </div>
-                                                        ))}
-                                                    </div>
+                                                            
+                                                            <div className="space-y-3">
+                                                                {patchJobs.map((job) => (
+                                                                    <div key={job.id} className="bg-black/40 p-4 rounded border border-white/5 grid grid-cols-12 gap-4 relative group hover:border-blue-600/30 transition-colors">
+                                                                        <div className="col-span-5">
+                                                                            <SearchableSelect label="ALT (IN PLAN)" options={extracted} value={job.oldSN} onChange={v => setPatchJobs(patchJobs.map(j => j.id === job.id ? {...j, oldSN: v} : j))} />
+                                                                        </div>
+                                                                        <div className="col-span-1 flex justify-center pt-7 text-slate-800"><ArrowRight size={20}/></div>
+                                                                        <div className="col-span-5">
+                                                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">NEUE HARDWARE SN</label>
+                                                                            <input type="text" value={job.newSN} onChange={e => setPatchJobs(patchJobs.map(j => j.id === job.id ? {...j, newSN: e.target.value.toUpperCase()} : j))} className="w-full bg-black/40 border border-slate-800 rounded px-3 py-2 font-mono text-xs text-white outline-none focus:border-blue-500" placeholder="SN..." />
+                                                                        </div>
+                                                                        <div className="col-span-1 flex justify-end pt-7">
+                                                                            {patchJobs.length > 1 && <button onClick={() => setPatchJobs(patchJobs.filter(j => j.id !== job.id))} className="p-2 bg-slate-900 border border-slate-800 rounded text-slate-600 hover:text-red-500 transition-colors"><Trash2 size={14}/></button>}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="space-y-10">
+                                                            <div className="flex flex-col gap-6">
+                                                                <div className="flex justify-between items-center">
+                                                                    <div className="flex items-center">
+                                                                        <div className="batch-arrow-label mr-6">DH Kalibrierung</div>
+                                                                        <h3 className="text-white font-black text-xs uppercase tracking-widest flex items-center gap-3"><Zap size={18} className="text-blue-500"/> Transfer</h3>
+                                                                    </div>
+                                                                </div>
+
+                                                                <button 
+                                                                    onClick={() => setDhJobs([...dhJobs, { id: Date.now(), srcSN: '', dstSN: '' }])} 
+                                                                    className="w-full py-4 border-2 border-dashed border-blue-600/30 rounded-lg text-[10px] font-black text-blue-400 hover:border-blue-500 hover:bg-blue-600/5 transition-all flex items-center justify-center gap-3 uppercase tracking-widest group"
+                                                                >
+                                                                    <Plus size={16} className="group-hover:scale-125 transition-transform"/> Eintrag für weitere Leuchten-Position hinzufügen
+                                                                </button>
+
+                                                                <div className="bg-blue-600/5 border border-blue-600/20 p-5 rounded-lg space-y-3">
+                                                                    <div className="flex items-center gap-2 text-[10px] font-black text-blue-400 uppercase tracking-widest">
+                                                                        <Info size={14}/> Folgende 25 Attribute werden synchronisiert:
+                                                                    </div>
+                                                                    <div className="flex flex-wrap gap-1.5">
+                                                                        {CALIBRATION_KEYS.map(k => <span key={k} className="key-badge">{k}</span>)}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="space-y-3">
+                                                                {dhJobs.map((job) => (
+                                                                    <div key={job.id} className="bg-black/40 p-4 rounded border border-white/5 grid grid-cols-12 gap-4 relative group hover:border-blue-600/30 transition-colors">
+                                                                        <div className="col-span-5">
+                                                                            <SearchableSelect label="QUELLE (BASIS)" options={extracted} value={job.srcSN} onChange={v => setDhJobs(dhJobs.map(j => j.id === job.id ? {...j, srcSN: v} : j))} />
+                                                                        </div>
+                                                                        <div className="col-span-1 flex justify-center pt-7 text-blue-500/20"><Zap size={20}/></div>
+                                                                        <div className="col-span-5">
+                                                                            <SearchableSelect label="ZIEL (ZUKÜNFTIG)" options={extracted} value={job.dstSN} onChange={v => setDhJobs(dhJobs.map(j => j.id === job.id ? {...j, dstSN: v} : j))} />
+                                                                        </div>
+                                                                        <div className="col-span-1 flex justify-end pt-7">
+                                                                            {dhJobs.length > 1 && <button onClick={() => setDhJobs(dhJobs.filter(j => j.id !== job.id))} className="p-2 bg-slate-900 border border-slate-800 rounded text-slate-600 hover:text-red-500 transition-colors"><Trash2 size={14}/></button>}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -408,7 +445,7 @@
                                                     {isDone ? <CheckCircle2 size={40} className="text-emerald-500" /> : <Settings size={40} className="text-blue-500 animate-spin-slow" />}
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <h4 className="text-lg font-bold text-white uppercase tracking-tight">Status: {isDone ? 'Bereit' : 'Warten'}</h4>
+                                                    <h4 className="text-lg font-bold text-white uppercase tracking-tight">{isDone ? 'Verarbeitet' : 'Bereit'}</h4>
                                                     <p className="text-[10px] text-slate-500 font-mono italic opacity-60 truncate px-4">{file.name}</p>
                                                 </div>
                                             </div>
@@ -417,9 +454,9 @@
                                                 <button 
                                                     onClick={run} 
                                                     disabled={isDone || (mode === 'patch' ? patchJobs.some(j => !j.newSN) : dhJobs.some(j => !j.dstSN))} 
-                                                    className={`w-full py-5 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all ${isDone ? 'bg-slate-800 text-slate-600' : 'bg-blue-600 text-white hover:bg-blue-500 shadow-blue-500/20'}`}
+                                                    className={`w-full py-5 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all shadow-xl ${isDone ? 'bg-slate-800 text-slate-600' : 'bg-blue-600 text-white hover:bg-blue-500 shadow-blue-500/20'}`}
                                                 >
-                                                    PATCH AUSFÜHREN
+                                                    AUSFÜHREN
                                                 </button>
                                                 
                                                 {isDone && dlUrl && (
@@ -427,27 +464,27 @@
                                                         <a 
                                                             href={dlUrl} 
                                                             download={file.name.replace('.map', '_patched.map')} 
-                                                            className="flex items-center justify-center w-full py-6 bg-white text-black font-black text-xs rounded-lg uppercase tracking-widest hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]"
+                                                            className="flex items-center justify-center w-full py-6 bg-white text-black font-black text-xs rounded-lg uppercase tracking-widest hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] transition-all"
                                                         >
-                                                            <Download className="mr-3" size={18} /> DOWNLOAD .MAP
+                                                            <Download className="mr-3" size={18} /> DATEI LADEN
                                                         </a>
                                                         <button className="flex items-center justify-center w-full py-4 bg-emerald-600/10 border border-emerald-600/30 text-emerald-400 rounded-lg text-[9px] font-black uppercase hover:bg-emerald-600 hover:text-white transition-all">
-                                                            <FileText className="mr-2" size={16}/> PROTOKOLL DRUCKEN (A4)
+                                                            <FileText className="mr-2" size={16}/> PROTOKOLL (A4)
                                                         </button>
                                                     </div>
                                                 )}
                                                 
-                                                <button onClick={() => {setFile(null); setIsDone(false); setDlUrl(null);}} className="text-slate-600 text-[9px] font-bold uppercase tracking-widest hover:text-red-500 transition-colors mt-4">Abbrechen / Reset</button>
+                                                <button onClick={() => {setFile(null); setIsDone(false); setDlUrl(null);}} className="text-slate-600 text-[9px] font-bold uppercase tracking-widest hover:text-red-500 transition-colors mt-4">Reset</button>
                                             </div>
                                         </div>
                                         
                                         <div className="card-cc-dark p-6 border-l-4 border-l-blue-500">
                                             <div className="flex items-center gap-3 mb-3">
                                                 <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
-                                                <h5 className="text-[10px] font-black uppercase tracking-widest text-white">Integritäts-Check</h5>
+                                                <h5 className="text-[10px] font-black uppercase tracking-widest text-white">Wartungs-Status</h5>
                                             </div>
                                             <p className="text-[11px] text-slate-500 leading-relaxed italic">
-                                                Die Konsole verhindert Duplikate innerhalb der PMU-Tags, um die Sichtbarkeit der Leuchten im Plan-Layout des Commissioners zu garantieren.
+                                                Die Konsole validiert die XML-Integrität und verhindert Duplikate, um die Sichtbarkeit im Commissioner zu gewährleisten.
                                             </p>
                                         </div>
                                     </div>
