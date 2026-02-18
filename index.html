@@ -40,7 +40,6 @@
         .help-scroll::-webkit-scrollbar { width: 8px; }
         .help-scroll::-webkit-scrollbar-thumb { background: var(--schahl-blue); border-radius: 10px; border: 2px solid #00040D; }
         
-        /* Star Animation Classes */
         @keyframes twinkling {
             0%, 100% { opacity: 0.2; transform: scale(0.8); }
             50% { opacity: 1; transform: scale(1.1); }
@@ -50,6 +49,10 @@
 </head>
 <body>
     <div id="root"></div>
-    <script type="text/babel" src="index.tsx"></script>
+    <script type="text/babel" data-type="module" data-presets="react,typescript">
+        // The script content from index.tsx will be bundled here by the logic or the file itself will be loaded.
+        // For Babel-standalone on GitHub Pages, we will use the merged index.tsx content.
+    </script>
+    <script type="text/babel" data-type="module" src="index.tsx"></script>
 </body>
 </html>
