@@ -30,8 +30,8 @@
             font-family: 'Inter', sans-serif; 
             background-color: var(--schahl-dark); 
             background-image: 
-                radial-gradient(circle at 10% 10%, rgba(0, 137, 208, 0.15) 0%, transparent 40%),
-                radial-gradient(circle at 90% 10%, rgba(0, 137, 208, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 15% 15%, rgba(0, 137, 208, 0.12) 0%, transparent 50%),
+                radial-gradient(circle at 85% 85%, rgba(0, 137, 208, 0.08) 0%, transparent 50%),
                 linear-gradient(rgba(0, 11, 24, 0.98), rgba(0, 11, 24, 0.98)),
                 url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
             color: #f8fafc; 
@@ -41,29 +41,29 @@
 
         .led-spotlight {
             position: fixed;
-            width: 800px;
-            height: 800px;
+            width: 1000px;
+            height: 1000px;
             background: radial-gradient(circle, var(--led-glow) 0%, transparent 70%);
-            filter: blur(100px);
+            filter: blur(120px);
             pointer-events: none;
             z-index: 0;
-            opacity: 0.25;
+            opacity: 0.2;
         }
 
         .cc-header {
-            background: rgba(0, 11, 24, 0.85);
-            backdrop-filter: blur(25px);
-            border-bottom: 1px solid rgba(255,255,255,0.08);
+            background: rgba(0, 11, 24, 0.9);
+            backdrop-filter: blur(30px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
             height: 90px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.7);
         }
 
         .glass-card {
             background: rgba(255, 255, 255, 0.03);
             backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 24px;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.9);
+            box-shadow: 0 40px 80px rgba(0,0,0,0.8);
         }
 
         .led-button {
@@ -72,51 +72,39 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .led-button:hover:not(:disabled) {
-            box-shadow: 0 0 35px var(--schahl-blue);
+            box-shadow: 0 0 40px var(--schahl-blue);
             transform: translateY(-2px);
             background: #009df0;
         }
 
-        .search-dropdown {
-            background: #05101c;
-            border: 1px solid rgba(0, 137, 208, 0.3);
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 20px rgba(0, 137, 208, 0.1);
-        }
-
-        .key-badge {
-            background: rgba(0, 137, 208, 0.1);
-            border: 1px solid rgba(0, 137, 208, 0.2);
-            color: #4dc3ff;
-            font-family: monospace;
-            font-size: 10px;
-            padding: 3px 10px;
-            border-radius: 6px;
-        }
+        .help-scroll::-webkit-scrollbar { width: 6px; }
+        .help-scroll::-webkit-scrollbar-track { background: transparent; }
+        .help-scroll::-webkit-scrollbar-thumb { background: rgba(0, 137, 208, 0.3); border-radius: 10px; }
 
         @keyframes pulse-led {
             0%, 100% { opacity: 0.3; transform: scale(1); }
-            50% { opacity: 0.7; transform: scale(1.05); }
+            50% { opacity: 0.8; transform: scale(1.1); }
         }
         .led-status-dot {
-            animation: pulse-led 3s infinite ease-in-out;
+            animation: pulse-led 2.5s infinite ease-in-out;
         }
 
-        .instruction-step {
-            border-left: 2px solid rgba(0, 137, 208, 0.3);
-            padding-left: 20px;
-            margin-bottom: 24px;
+        .step-line {
             position: relative;
+            padding-left: 32px;
+            border-left: 1px solid rgba(0, 137, 208, 0.2);
+            margin-bottom: 30px;
         }
-        .instruction-step::before {
+        .step-line::before {
             content: '';
             position: absolute;
             left: -5px;
             top: 0;
-            width: 8px;
-            height: 8px;
+            width: 9px;
+            height: 9px;
             background: var(--schahl-blue);
             border-radius: 50%;
-            box-shadow: 0 0 8px var(--schahl-blue);
+            box-shadow: 0 0 10px var(--schahl-blue);
         }
     </style>
 </head>
@@ -129,8 +117,8 @@
         import { 
             Upload, Zap, Download, CheckCircle2, 
             Search, ChevronDown, Settings, Lock, Unlock,
-            HardDrive, ArrowRight, Plus, Trash2, Layout, HelpCircle, LogIn, FileText, Info, EyeOff, X,
-            MousePointer2, Wifi, Layers, RefreshCw, AlertTriangle, ShieldCheck
+            HardDrive, ArrowRight, Plus, Trash2, Layout, HelpCircle, LogIn, Info, X,
+            Wifi, RefreshCw, AlertTriangle, ShieldCheck, MousePointer2, CheckSquare, Settings2
         } from 'lucide-react';
 
         const CALIBRATION_KEYS = [
@@ -185,24 +173,24 @@
             return (
                 <div className="relative" ref={ref}>
                     {label && <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2 block">{label}</label>}
-                    <div onClick={() => setOpen(!open)} className={`w-full bg-black/60 border rounded-xl px-4 py-3.5 flex justify-between items-center cursor-pointer transition-all ${open ? 'border-blue-500 shadow-[0_0_20px_rgba(0,137,208,0.2)]' : 'border-slate-800 hover:border-slate-600'}`}>
+                    <div onClick={() => setOpen(!open)} className={`w-full bg-black/60 border rounded-xl px-4 py-3.5 flex justify-between items-center cursor-pointer transition-all ${open ? 'border-blue-500 shadow-[0_0_20px_rgba(0,137,208,0.2)]' : 'border-slate-800 hover:border-slate-700'}`}>
                         <span className={`font-mono text-xs truncate ${selected ? "text-white font-bold" : "text-slate-600 italic"}`}>
-                            {selected ? selected.value : "Gerät wählen..."}
+                            {selected ? selected.value : "Wählen..."}
                         </span>
                         <ChevronDown size={14} className={`text-blue-500 transition-transform ${open ? 'rotate-180' : ''}`} />
                     </div>
                     {open && (
-                        <div className="absolute z-[2000] w-full mt-2 search-dropdown rounded-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="absolute z-[5000] w-full mt-2 bg-[#05101c] border border-blue-900/50 rounded-xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
                             <div className="p-3 border-b border-white/5 bg-black/40 flex gap-2">
                                 <Search size={14} className="text-slate-500 mt-1" />
-                                <input autoFocus className="bg-transparent border-none outline-none text-xs w-full text-white" placeholder="Seriennummer suchen..." value={search} onChange={e => setSearch(e.target.value)} />
+                                <input autoFocus className="bg-transparent border-none outline-none text-xs w-full text-white" placeholder="Suchen..." value={search} onChange={e => setSearch(e.target.value)} />
                             </div>
-                            <div className="max-h-64 overflow-y-auto">
-                                {filtered.length > 0 ? filtered.map(o => (
-                                    <div key={o.value} onClick={() => { onChange(o.value); setOpen(false); }} className={`px-4 py-3.5 text-xs font-mono cursor-pointer hover:bg-blue-600/30 border-b border-white/5 last:border-0 transition-colors ${value === o.value ? 'bg-blue-600/50 text-white font-bold' : 'text-slate-300'}`}>
-                                        {o.value} <span className="opacity-40 ml-2 font-normal">[{o.networkId || '??'}]</span>
+                            <div className="max-h-60 overflow-y-auto">
+                                {filtered.map(o => (
+                                    <div key={o.value} onClick={() => { onChange(o.value); setOpen(false); }} className={`px-4 py-3 text-xs font-mono cursor-pointer hover:bg-blue-600/30 border-b border-white/5 last:border-0 ${value === o.value ? 'bg-blue-600 text-white font-bold' : 'text-slate-400'}`}>
+                                        {o.value} <span className="opacity-30 ml-2">[{o.networkId || '??'}]</span>
                                     </div>
-                                )) : <div className="p-4 text-xs text-slate-500 text-center italic">Keine Treffer</div>}
+                                ))}
                             </div>
                         </div>
                     )}
@@ -211,54 +199,64 @@
         };
 
         const HelpModal = ({ onClose }) => (
-            <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/90 backdrop-blur-md p-6">
-                <div className="glass-card w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col relative">
-                    <button onClick={onClose} className="absolute top-6 right-6 text-slate-500 hover:text-white transition-colors z-10"><X size={28}/></button>
+            <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/95 backdrop-blur-md p-6">
+                <div className="glass-card w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+                    <div className="p-8 border-b border-white/5 flex justify-between items-center bg-black/20">
+                        <div className="flex items-center gap-4">
+                            <HelpCircle className="text-blue-500" size={32} />
+                            <div>
+                                <h2 className="text-2xl font-black text-white uppercase tracking-widest">Commissioner Kurzanleitung</h2>
+                                <p className="text-blue-400 text-[10px] font-bold uppercase tracking-widest">Professioneller Maintenance Workflow</p>
+                            </div>
+                        </div>
+                        <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-colors"><X size={28} className="text-slate-500 hover:text-white"/></button>
+                    </div>
                     
-                    <div className="p-12 overflow-y-auto space-y-12">
-                        <div className="space-y-2 border-b border-white/10 pb-6">
-                            <h2 className="text-4xl font-black text-white uppercase tracking-widest">Kurzanleitung</h2>
-                            <p className="text-blue-400 font-bold uppercase tracking-[0.2em] text-xs">Commissioner & Wartungskonsole</p>
+                    <div className="p-12 overflow-y-auto help-scroll grid lg:grid-cols-2 gap-16">
+                        <div className="space-y-8">
+                            <div className="step-line">
+                                <h4 className="text-white font-black text-xs uppercase mb-3 flex items-center gap-2"><Layout size={16} className="text-blue-500"/> 1. Leuchten hinzufügen (Discover)</h4>
+                                <p className="text-slate-400 text-xs leading-relaxed">
+                                    Gehen Sie im Commissioner auf <b>Add Fixtures</b>. Wählen Sie <b>"discovering them using a USB Wireless Adapter"</b> und klicken Sie auf <b>Next</b>.
+                                </p>
+                            </div>
+                            <div className="step-line">
+                                <h4 className="text-white font-black text-xs uppercase mb-3 flex items-center gap-2"><Wifi size={16} className="text-blue-500"/> 2. Netzwerk-Scan</h4>
+                                <p className="text-slate-400 text-xs leading-relaxed">
+                                    Wählen Sie das Netzwerk aus (z.B. <b>Factory Default Network</b>). Klicken Sie auf <b>Discover</b>. <br/>
+                                    <span className="text-blue-500 font-bold block mt-2">WICHTIG: Drücken Sie 2-3 mal auf Discover, falls die Leuchte nicht sofort erscheint!</span>
+                                </p>
+                            </div>
+                            <div className="step-line">
+                                <h4 className="text-white font-black text-xs uppercase mb-3 flex items-center gap-2"><Settings2 size={16} className="text-blue-500"/> 3. Netzwerk-Wechsel (Edit)</h4>
+                                <p className="text-slate-400 text-xs leading-relaxed">
+                                    Wenn die Leuchte bereits im Plan ist, klicken Sie auf <b>Cancel</b>. Machen Sie einen Doppelklick (oder Rechtsklick -> Edit) auf die Leuchte im Plan.
+                                    Unter <b>Current Network</b> klicken Sie auf das <b>Plus-Symbol (+)</b> und wählen das Netzwerk aus, in dem die Leuchte gefunden wurde. Bestätigen Sie mit <b>OK</b>.
+                                </p>
+                            </div>
                         </div>
 
-                        <div className="grid md:grid-cols-2 gap-12">
-                            <div className="space-y-8">
-                                <div className="instruction-step">
-                                    <h4 className="text-white font-black text-sm uppercase mb-3 flex items-center gap-2"><Layout size={18} className="text-blue-500"/> 1. Leuchten finden</h4>
-                                    <p className="text-slate-400 text-xs leading-relaxed">
-                                        Öffnen Sie den Commissioner und gehen Sie auf <b>Add Fixtures</b>. Wählen Sie die Option <b>"discovering them using a USB Wireless Adapter"</b>.
-                                    </p>
-                                </div>
-                                <div className="instruction-step">
-                                    <h4 className="text-white font-black text-sm uppercase mb-3 flex items-center gap-2"><Wifi size={18} className="text-blue-500"/> 2. Netzwerk & Scan</h4>
-                                    <p className="text-slate-400 text-xs leading-relaxed">
-                                        Wählen Sie das Netzwerk (z.B. <b>Factory Default</b> oder Ihr Projekt-Netzwerk). Klicken Sie auf <b>Discover</b>. <br/><br/>
-                                        <span className="text-blue-400/80 font-bold italic">Tipp: Falls die Leuchte nicht sofort erscheint, klicken Sie 2-3 mal erneut auf Discover.</span>
-                                    </p>
-                                </div>
-                                <div className="instruction-step">
-                                    <h4 className="text-white font-black text-sm uppercase mb-3 flex items-center gap-2"><Plus size={18} className="text-blue-500"/> 3. Hinzufügen</h4>
-                                    <p className="text-slate-400 text-xs leading-relaxed">
-                                        Wenn die Leuchte erscheint, fügen Sie diese per Doppelklick zum Plan hinzu. Ändern Sie ggf. das Netzwerk über das <b>Plus-Symbol (+)</b>.
-                                    </p>
-                                </div>
+                        <div className="space-y-8">
+                            <div className="step-line">
+                                <h4 className="text-white font-black text-xs uppercase mb-3 flex items-center gap-2"><RefreshCw size={16} className="text-blue-500"/> 4. Synchronisation (Sync Map)</h4>
+                                <p className="text-slate-400 text-xs leading-relaxed">
+                                    Klicken Sie oben im Menü auf <b>Sync Map</b>. Wählen Sie <b>"User USB Wireless Adapter Only"</b> und klicken Sie auf <b>Next</b>.
+                                </p>
                             </div>
-
-                            <div className="space-y-8">
-                                <div className="instruction-step">
-                                    <h4 className="text-white font-black text-sm uppercase mb-3 flex items-center gap-2"><RefreshCw size={18} className="text-blue-500"/> 4. Synchronisation</h4>
-                                    <p className="text-slate-400 text-xs leading-relaxed">
-                                        Nachdem Sie die Seriennummern mit dieser Konsole ausgetauscht haben, müssen die Leuchten im Commissioner erneut <b>synchronisiert</b> werden.
-                                    </p>
+                            <div className="step-line">
+                                <h4 className="text-white font-black text-xs uppercase mb-3 flex items-center gap-2"><CheckSquare size={16} className="text-emerald-500"/> 5. Bestätigung</h4>
+                                <p className="text-slate-400 text-xs leading-relaxed">
+                                    Sollte das Fenster <b>"Allow Wireless Coordination"</b> erscheinen, klicken Sie auf <b>JA (YES)</b>. Warten Sie, bis der Prozess mit <b>Finish</b> endet.
+                                    Bei Fehlern klicken Sie auf <b>Retry</b>.
+                                </p>
+                            </div>
+                            <div className="bg-blue-600/5 border border-blue-600/20 p-6 rounded-xl space-y-3">
+                                <div className="flex items-center gap-2 text-[10px] font-black text-blue-400 uppercase tracking-widest">
+                                    <AlertTriangle size={14}/> Support-Hinweis:
                                 </div>
-                                <div className="instruction-step">
-                                    <h4 className="text-white font-black text-sm uppercase mb-3 flex items-center gap-2"><AlertTriangle size={18} className="text-amber-500"/> Probleme?</h4>
-                                    <ul className="text-slate-500 text-[11px] space-y-2 list-disc ml-4 italic">
-                                        <li>Leuchte nicht erreichbar? Prüfen Sie die Spannungsversorgung.</li>
-                                        <li>Falsches Netzwerk? Nutzen Sie "Scan for Networks" um alle aktiven Gruppen zu identifizieren.</li>
-                                        <li>Immer noch keine Verbindung? Prüfen Sie den USB-Dongle und die Signalstärke.</li>
-                                    </ul>
-                                </div>
+                                <p className="text-slate-500 text-[10px] italic leading-relaxed">
+                                    Sollte die Leuchte trotz mehrfachen Discover-Versuchen nicht erreichbar sein, prüfen Sie die Spannungsversorgung oder kontaktieren Sie unseren Support für eine tiefere Diagnose.
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -278,24 +276,21 @@
             };
 
             return (
-                <div className="fixed inset-0 z-[4000] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4">
-                    <div className="glass-card w-full max-w-md p-10 relative overflow-hidden border-t-2 border-blue-500/50">
+                <div className="fixed inset-0 z-[7000] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4">
+                    <div className="glass-card w-full max-w-md p-10 border-t-2 border-blue-500/50">
                         <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white"><X size={20}/></button>
-                        <div className="text-center mb-10">
-                            <h2 className="text-xl font-black text-white uppercase tracking-[0.3em]">Admin Login</h2>
-                            <div className="h-0.5 w-12 bg-blue-500 mx-auto mt-2 led-status-dot"></div>
-                        </div>
-                        <form onSubmit={handleSubmit} className="space-y-8">
+                        <h2 className="text-xl font-black text-white uppercase tracking-[0.3em] text-center mb-10">Admin Login</h2>
+                        <form onSubmit={handleSubmit} className="space-y-6">
                             <div>
-                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Benutzername</label>
-                                <input type="text" value={user} onChange={e => setUser(e.target.value)} className="w-full bg-black/40 border border-slate-800 rounded-xl px-5 py-4 text-white outline-none focus:border-blue-500 transition-all" placeholder="Patrick Hartmann" />
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Nutzer</label>
+                                <input type="text" value={user} onChange={e => setUser(e.target.value)} className="w-full bg-black/40 border border-slate-800 rounded-xl px-4 py-3.5 text-white outline-none focus:border-blue-500" placeholder="Username" />
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Passwort</label>
-                                <input type="password" value={pass} onChange={e => setPass(e.target.value)} className="w-full bg-black/40 border border-slate-800 rounded-xl px-5 py-4 text-white outline-none focus:border-blue-500 transition-all" placeholder="••••" />
+                                <input type="password" value={pass} onChange={e => setPass(e.target.value)} className="w-full bg-black/40 border border-slate-800 rounded-xl px-4 py-3.5 text-white outline-none focus:border-blue-500" placeholder="••••" />
                             </div>
-                            {err && <p className="text-red-500 text-[10px] font-black uppercase text-center tracking-widest">Zugriff verweigert</p>}
-                            <button type="submit" className="w-full led-button py-5 rounded-xl font-black text-[11px] text-white uppercase tracking-[0.4em]">Anmelden</button>
+                            {err && <p className="text-red-500 text-[10px] font-black uppercase text-center tracking-widest">Fehlgeschlagen</p>}
+                            <button type="submit" className="w-full led-button py-4 rounded-xl font-black text-[11px] text-white uppercase tracking-widest">Bestätigen</button>
                         </form>
                     </div>
                 </div>
@@ -370,12 +365,12 @@
 
             return (
                 <div className="min-h-screen flex flex-col relative overflow-hidden">
-                    <div className="led-spotlight top-[-100px] left-[-100px]"></div>
-                    <div className="led-spotlight bottom-[-200px] right-[-100px]"></div>
+                    <div className="led-spotlight top-[-200px] left-[-200px]"></div>
+                    <div className="led-spotlight bottom-[-200px] right-[-200px]"></div>
 
                     <header className="cc-header sticky top-0 z-[1100] flex items-center justify-between px-16">
-                        <div className="flex items-center gap-14">
-                            <a href="https://www.thorlux.de/" target="_blank" className="cc-logo-link bg-white px-10 py-4 rounded-xl shadow-2xl">
+                        <div className="flex items-center gap-16">
+                            <a href="https://www.thorlux.de/" target="_blank" className="cc-logo-link bg-white px-10 py-4 rounded-xl shadow-2xl transition-transform hover:scale-105">
                                 <img src={thorluxLogo} alt="Thorlux" className="h-10 w-auto" />
                             </a>
                             <div className="h-10 w-[1px] bg-white/10"></div>
@@ -384,13 +379,13 @@
                             </a>
                         </div>
                         
-                        <div className="flex items-center gap-8">
+                        <div className="flex items-center gap-10">
                             <button onClick={() => setShowHelp(true)} className="text-[10px] font-black text-blue-400 hover:text-white transition-colors uppercase tracking-[0.4em] flex items-center gap-2 group">
-                                <HelpCircle size={16} className="group-hover:scale-110 transition-transform"/> HILFE
+                                <HelpCircle size={18} className="group-hover:scale-110 transition-transform"/> HILFE
                             </button>
                             <button 
                                 onClick={() => isAdmin ? setIsAdmin(false) : setShowLogin(true)}
-                                className={`px-8 py-3 rounded-xl text-[10px] font-black transition-all flex items-center gap-3 border uppercase tracking-[0.2em] ${isAdmin ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_20px_rgba(0,137,208,0.4)]' : 'bg-slate-900/40 text-blue-500 border-blue-900/60 hover:border-blue-500'}`}
+                                className={`px-8 py-3 rounded-xl text-[10px] font-black transition-all flex items-center gap-3 border uppercase tracking-[0.2em] ${isAdmin ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_25px_rgba(0,137,208,0.5)]' : 'bg-slate-900/50 text-blue-500 border-blue-900/60 hover:border-blue-500'}`}
                             >
                                 {isAdmin ? <Unlock size={14}/> : <Lock size={14}/>} {isAdmin ? 'ADMIN MODUS' : 'ADMIN LOGIN'}
                             </button>
@@ -398,46 +393,46 @@
                     </header>
 
                     <main className="flex-1 flex flex-col items-center p-14 z-10">
-                        <div className="w-full max-w-7xl space-y-20">
+                        <div className="w-full max-w-7xl space-y-24">
                             
-                            <div className="text-center space-y-5">
+                            <div className="text-center space-y-6">
                                 <h1 className="text-7xl font-light text-white uppercase tracking-[0.6em] ml-[0.6em]">STANDORTE</h1>
-                                <div className="w-32 h-1 bg-blue-600 mx-auto rounded-full led-status-dot"></div>
+                                <div className="w-32 h-1 bg-blue-600 mx-auto rounded-full led-status-dot shadow-[0_0_15px_var(--schahl-blue)]"></div>
                             </div>
 
                             {!file ? (
-                                <div className="glass-card p-32 flex flex-col items-center border-dashed border-2 border-slate-800 hover:border-blue-500/50 transition-all cursor-pointer group max-w-3xl mx-auto relative overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)]">
+                                <div className="glass-card p-40 flex flex-col items-center border-dashed border-2 border-slate-800 hover:border-blue-500/50 transition-all cursor-pointer group max-w-3xl mx-auto relative overflow-hidden shadow-[0_0_120px_rgba(0,0,0,0.6)]">
                                     <div className="absolute inset-0 bg-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                     <div className="w-24 h-24 bg-blue-600/10 rounded-full flex items-center justify-center mb-10 border border-blue-600/20 group-hover:scale-110 transition-transform shadow-inner">
                                         <Upload className="w-12 h-12 text-blue-500" />
                                     </div>
-                                    <h2 className="text-3xl font-black text-white uppercase tracking-[0.3em] text-center">Projektdatei laden</h2>
-                                    <p className="text-slate-500 text-[11px] mt-8 italic uppercase tracking-widest">Wählen Sie die .MAP Datei aus</p>
+                                    <h2 className="text-3xl font-black text-white uppercase tracking-[0.3em] text-center">Projektdatei (.MAP) laden</h2>
+                                    <p className="text-slate-500 text-[11px] mt-8 italic uppercase tracking-widest opacity-60">Hier klicken oder Datei hereinziehen</p>
                                     <input type="file" accept=".map" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => {
                                         const f = e.target.files[0];
                                         if (f) { const r = new FileReader(); r.onload = (ev) => setFile({ name: f.name, content: ev.target.result }); r.readAsText(f); }
                                     }} />
                                 </div>
                             ) : (
-                                <div className="grid lg:grid-cols-12 gap-14">
+                                <div className="grid lg:grid-cols-12 gap-16 animate-in fade-in slide-in-from-bottom-10 duration-700">
                                     <div className="lg:col-span-12 flex justify-center">
-                                        <div className="bg-black/40 p-2 rounded-2xl border border-white/5 flex gap-3 shadow-2xl">
-                                            <button onClick={() => {setMode('patch'); setIsDone(false);}} className={`px-16 py-5 rounded-xl text-[12px] font-black transition-all uppercase tracking-[0.3em] flex items-center gap-4 ${mode === 'patch' ? 'led-button text-white' : 'text-slate-500 hover:text-white'}`}>
-                                                <HardDrive size={20}/> Austausch
+                                        <div className="bg-black/50 p-2.5 rounded-2xl border border-white/5 flex gap-3 shadow-2xl shadow-black/80">
+                                            <button onClick={() => {setMode('patch'); setIsDone(false);}} className={`px-20 py-6 rounded-xl text-[13px] font-black transition-all uppercase tracking-[0.4em] flex items-center gap-5 ${mode === 'patch' ? 'led-button text-white shadow-[0_0_30px_rgba(0,137,208,0.3)]' : 'text-slate-500 hover:text-white'}`}>
+                                                <HardDrive size={22}/> Austausch
                                             </button>
-                                            <button onClick={() => {setMode('dh'); setIsDone(false);}} className={`px-16 py-5 rounded-xl text-[12px] font-black transition-all uppercase tracking-[0.3em] flex items-center gap-4 ${mode === 'dh' ? 'led-button text-white' : 'text-slate-500 hover:text-white'}`}>
-                                                <Zap size={20}/> DH Transfer
+                                            <button onClick={() => {setMode('dh'); setIsDone(false);}} className={`px-20 py-6 rounded-xl text-[13px] font-black transition-all uppercase tracking-[0.4em] flex items-center gap-5 ${mode === 'dh' ? 'led-button text-white shadow-[0_0_30px_rgba(0,137,208,0.3)]' : 'text-slate-500 hover:text-white'}`}>
+                                                <Zap size={22}/> DH Transfer
                                             </button>
                                         </div>
                                     </div>
 
-                                    <div className="lg:col-span-8 space-y-10">
+                                    <div className="lg:col-span-8 space-y-12">
                                         <div className="glass-card p-12">
                                             <div className="space-y-14">
                                                 <div className="flex flex-col gap-10">
-                                                    <div className="flex justify-between items-center border-b border-white/5 pb-6">
-                                                        <h3 className="text-white font-black text-sm uppercase tracking-[0.4em] flex items-center gap-5">
-                                                            <div className="w-2.5 h-2.5 rounded-full bg-blue-500 led-status-dot shadow-[0_0_10px_var(--schahl-blue)]"></div>
+                                                    <div className="flex justify-between items-center border-b border-white/5 pb-8">
+                                                        <h3 className="text-white font-black text-base uppercase tracking-[0.4em] flex items-center gap-6">
+                                                            <div className="w-3 h-3 rounded-full bg-blue-500 led-status-dot shadow-[0_0_15px_var(--schahl-blue)]"></div>
                                                             {mode === 'patch' ? 'Hardware Austausch' : 'DH Kalibrierungs-Sync'}
                                                         </h3>
                                                     </div>
@@ -447,17 +442,17 @@
                                                             ? setPatchJobs([...patchJobs, { id: Date.now(), oldSN: '', newSN: '', activeDropdown: false }])
                                                             : setDhJobs([...dhJobs, { id: Date.now(), srcSN: '', dstSN: '', activeDropdown: false }])
                                                         } 
-                                                        className="w-full py-6 border-2 border-dashed border-blue-900/30 rounded-2xl text-[11px] font-black text-blue-400 hover:border-blue-500 hover:bg-blue-600/5 transition-all flex items-center justify-center gap-5 uppercase tracking-[0.3em] group shadow-inner"
+                                                        className="w-full py-8 border-2 border-dashed border-blue-900/30 rounded-2xl text-[12px] font-black text-blue-400 hover:border-blue-500 hover:bg-blue-600/5 transition-all flex items-center justify-center gap-6 uppercase tracking-[0.4em] group shadow-inner"
                                                     >
-                                                        <Plus size={20} className="group-hover:scale-125 transition-transform text-blue-500"/> Eintrag für weitere Position hinzufügen
+                                                        <Plus size={24} className="group-hover:scale-125 transition-transform text-blue-500"/> Eintrag für weitere Position hinzufügen
                                                     </button>
 
                                                     {isAdmin && mode === 'dh' && (
-                                                        <div className="bg-blue-900/10 border border-blue-500/20 p-8 rounded-2xl space-y-5 animate-in fade-in slide-in-from-top-6">
-                                                            <div className="flex items-center gap-4 text-[11px] font-black text-blue-400 uppercase tracking-widest">
-                                                                <ShieldCheck size={18}/> Synchronisierte Experten-Attribute:
+                                                        <div className="bg-blue-900/10 border border-blue-500/20 p-10 rounded-2xl space-y-6 animate-in fade-in slide-in-from-top-6">
+                                                            <div className="flex items-center gap-4 text-[12px] font-black text-blue-400 uppercase tracking-widest">
+                                                                <ShieldCheck size={20}/> Synchronisierte Experten-Attribute:
                                                             </div>
-                                                            <div className="flex flex-wrap gap-2.5">
+                                                            <div className="flex flex-wrap gap-3">
                                                                 {CALIBRATION_KEYS.map(k => <span key={k} className="key-badge">{k}</span>)}
                                                             </div>
                                                         </div>
@@ -467,12 +462,12 @@
                                                 <div className="space-y-6">
                                                     {(mode === 'patch' ? patchJobs : dhJobs).map((job, idx) => (
                                                         <div key={job.id} 
-                                                            className={`bg-black/50 p-7 rounded-2xl border border-white/5 grid grid-cols-12 gap-8 relative transition-all duration-300 ${job.activeDropdown ? 'z-[1000] border-blue-500/40 shadow-[0_0_40px_rgba(0,137,208,0.15)]' : 'z-[1]'}`}
-                                                            style={{zIndex: job.activeDropdown ? 1000 : (100 - idx)}}
+                                                            className={`bg-black/50 p-8 rounded-2xl border border-white/5 grid grid-cols-12 gap-10 relative transition-all duration-300 ${job.activeDropdown ? 'z-[5000] border-blue-500/50 shadow-[0_0_50px_rgba(0,137,208,0.2)]' : 'z-[1]'}`}
+                                                            style={{zIndex: job.activeDropdown ? 5000 : (100 - idx)}}
                                                         >
                                                             <div className="col-span-5">
                                                                 <SearchableSelect 
-                                                                    label={mode === 'patch' ? "Alt (Leuchte im Plan)" : "Quelle (Basis-Kalibrierung)"} 
+                                                                    label={mode === 'patch' ? "Alt (Leuchte im Plan)" : "Quelle (Kalibrierung)"} 
                                                                     options={extracted} 
                                                                     value={mode === 'patch' ? job.oldSN : job.srcSN} 
                                                                     onOpenStateChange={(isOpen) => {
@@ -487,12 +482,12 @@
                                                                     }} 
                                                                 />
                                                             </div>
-                                                            <div className="col-span-1 flex justify-center pt-11 text-slate-800"><ArrowRight size={28}/></div>
+                                                            <div className="col-span-1 flex justify-center pt-12 text-slate-800"><ArrowRight size={32}/></div>
                                                             <div className="col-span-5">
                                                                 {mode === 'patch' ? (
                                                                     <>
                                                                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block mb-2">Neue Hardware SN</label>
-                                                                        <input type="text" value={job.newSN} onChange={e => setPatchJobs(patchJobs.map(j => j.id === job.id ? {...j, newSN: e.target.value.toUpperCase()} : j))} className="w-full bg-black/60 border border-slate-800 rounded-xl px-5 py-4 font-mono text-xs text-white outline-none focus:border-blue-500 shadow-inner transition-all" placeholder="Seriennummer..." />
+                                                                        <input type="text" value={job.newSN} onChange={e => setPatchJobs(patchJobs.map(j => j.id === job.id ? {...j, newSN: e.target.value.toUpperCase()} : j))} className="w-full bg-black/60 border border-slate-800 rounded-xl px-5 py-4 font-mono text-xs text-white outline-none focus:border-blue-500 shadow-inner transition-all" placeholder="Eingabe..." />
                                                                     </>
                                                                 ) : (
                                                                     <SearchableSelect 
@@ -506,13 +501,13 @@
                                                                     />
                                                                 )}
                                                             </div>
-                                                            <div className="col-span-1 flex justify-end pt-10">
+                                                            <div className="col-span-1 flex justify-end pt-11">
                                                                 {(mode === 'patch' ? patchJobs.length : dhJobs.length) > 1 && (
                                                                     <button onClick={() => {
                                                                         const updater = mode === 'patch' ? setPatchJobs : setDhJobs;
                                                                         const jobs = mode === 'patch' ? patchJobs : dhJobs;
                                                                         updater(jobs.filter(j => j.id !== job.id));
-                                                                    }} className="p-3 bg-slate-900 border border-slate-800 rounded-xl text-slate-600 hover:text-red-500 transition-colors shadow-lg"><Trash2 size={18}/></button>
+                                                                    }} className="p-3.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-600 hover:text-red-500 transition-colors shadow-lg"><Trash2 size={20}/></button>
                                                                 )}
                                                             </div>
                                                         </div>
@@ -522,16 +517,16 @@
                                         </div>
                                     </div>
 
-                                    <div className="lg:col-span-4 space-y-10">
-                                        <div className="glass-card p-12 text-center flex flex-col justify-between min-h-[560px] border-t-4 border-t-blue-500 relative overflow-hidden">
-                                            <div className="space-y-12 relative z-10">
+                                    <div className="lg:col-span-4 space-y-12">
+                                        <div className="glass-card p-12 text-center flex flex-col justify-between min-h-[600px] border-t-4 border-t-blue-500 relative overflow-hidden">
+                                            <div className="space-y-14 relative z-10">
                                                 <div className="w-28 h-28 mx-auto bg-black/40 rounded-full flex items-center justify-center border border-white/5 shadow-inner relative">
                                                     <div className="absolute inset-0 bg-blue-500/5 rounded-full led-status-dot"></div>
-                                                    {isDone ? <CheckCircle2 size={56} className="text-emerald-500 relative z-10" /> : <Settings size={56} className="text-blue-500 animate-spin-slow relative z-10" />}
+                                                    {isDone ? <CheckCircle2 size={60} className="text-emerald-500 relative z-10" /> : <Settings size={60} className="text-blue-500 animate-spin-slow relative z-10" />}
                                                 </div>
-                                                <div className="space-y-4">
-                                                    <h4 className="text-3xl font-black text-white uppercase tracking-[0.15em]">{isDone ? 'Erfolg' : 'Systembereit'}</h4>
-                                                    <p className="text-[11px] text-slate-500 font-mono italic opacity-60 truncate px-6 border-y border-white/5 py-4">{file.name}</p>
+                                                <div className="space-y-5">
+                                                    <h4 className="text-3xl font-black text-white uppercase tracking-[0.2em]">{isDone ? 'Erfolgreich' : 'Ready'}</h4>
+                                                    <p className="text-[11px] text-slate-500 font-mono italic opacity-60 truncate px-6 border-y border-white/5 py-5 tracking-widest">{file.name}</p>
                                                 </div>
                                             </div>
 
@@ -540,38 +535,40 @@
                                                     <button 
                                                         onClick={run} 
                                                         disabled={mode === 'patch' ? patchJobs.some(j => !j.newSN) : dhJobs.some(j => !j.dstSN)} 
-                                                        className="w-full py-7 rounded-2xl led-button text-[13px] font-black tracking-[0.4em] text-white uppercase disabled:opacity-20 disabled:shadow-none"
+                                                        className="w-full py-8 rounded-2xl led-button text-[14px] font-black tracking-[0.5em] text-white uppercase disabled:opacity-20 disabled:shadow-none shadow-xl"
                                                     >
                                                         AUSFÜHREN
                                                     </button>
                                                 ) : (
-                                                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                                                        <div className="bg-emerald-500/10 border border-emerald-500/20 p-5 rounded-xl text-[11px] text-emerald-400 font-bold leading-relaxed italic text-left">
-                                                            <Info size={16} className="mb-2" />
-                                                            Hinweis: Nachdem sollte man dann noch einmal synchronisieren und dann kann man die Map in den Server hochladen.
+                                                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-10 duration-700">
+                                                        <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-2xl text-[11px] text-emerald-400 font-bold leading-relaxed italic text-left">
+                                                            <div className="flex items-center gap-3 mb-3 text-emerald-400 uppercase tracking-widest text-[10px]">
+                                                                <CheckCircle2 size={16}/> Patch erfolgreich
+                                                            </div>
+                                                            WICHTIG: Nach dem Download muss die Map im Commissioner erneut synchronisiert werden, bevor sie auf den Server hochgeladen wird.
                                                         </div>
                                                         <a 
                                                             href={dlUrl} 
                                                             download={file.name.replace('.map', '_patched.map')} 
-                                                            className="flex items-center justify-center w-full py-8 bg-white text-black font-black text-sm rounded-2xl uppercase tracking-[0.4em] hover:shadow-[0_0_60px_rgba(255,255,255,0.4)] transition-all transform hover:scale-[1.02]"
+                                                            className="flex items-center justify-center w-full py-9 bg-white text-black font-black text-sm rounded-2xl uppercase tracking-[0.5em] hover:shadow-[0_0_70px_rgba(255,255,255,0.5)] transition-all transform hover:scale-[1.02]"
                                                         >
-                                                            <Download className="mr-3" size={24} /> DATEI LADEN
+                                                            <Download className="mr-4" size={26} /> DATEI DOWNLOAD
                                                         </a>
                                                     </div>
                                                 )}
                                                 
-                                                <button onClick={() => {setFile(null); setIsDone(false); setDlUrl(null);}} className="text-slate-600 text-[11px] font-black uppercase tracking-[0.5em] hover:text-red-500 transition-colors mt-8">Reset / Abbruch</button>
+                                                <button onClick={() => {setFile(null); setIsDone(false); setDlUrl(null);}} className="text-slate-600 text-[11px] font-black uppercase tracking-[0.6em] hover:text-red-500 transition-colors mt-10">Beenden / Zurück</button>
                                             </div>
                                         </div>
                                         
-                                        <div className="glass-card p-10 border-l-4 border-l-blue-500 relative overflow-hidden">
-                                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 rounded-full translate-x-16 -translate-y-16"></div>
-                                            <div className="flex items-center gap-5 mb-5">
-                                                <div className="w-3 h-3 rounded-full bg-emerald-500 led-status-dot shadow-[0_0_20px_rgba(16,185,129,0.9)]"></div>
-                                                <h5 className="text-[12px] font-black uppercase tracking-widest text-white">System-Validierung</h5>
+                                        <div className="glass-card p-12 border-l-4 border-l-blue-500 relative overflow-hidden group">
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 rounded-full translate-x-16 -translate-y-16 group-hover:bg-blue-600/10 transition-colors"></div>
+                                            <div className="flex items-center gap-5 mb-6">
+                                                <div className="w-3.5 h-3.5 rounded-full bg-emerald-500 led-status-dot shadow-[0_0_20px_rgba(16,185,129,0.9)]"></div>
+                                                <h5 className="text-[12px] font-black uppercase tracking-widest text-white">System-Status: Aktiv</h5>
                                             </div>
-                                            <p className="text-[11px] text-slate-500 leading-relaxed italic relative z-10">
-                                                Die Konsole garantiert die XML-Validität der .MAP Datei. Falls Leuchten nicht erreichbar sind, nutzen Sie die Discover-Funktion im Commissioner.
+                                            <p className="text-[12px] text-slate-500 leading-relaxed italic relative z-10">
+                                                Die Maintenance Console validiert alle XML-Strukturen automatisch. Nutzen Sie die <b>HILFE</b> oben rechts für den Commissioner Workflow.
                                             </p>
                                         </div>
                                     </div>
@@ -583,8 +580,8 @@
                     {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
                     {showLogin && <LoginModal onClose={() => setShowLogin(false)} onLogin={() => { setIsAdmin(true); setShowLogin(false); }} />}
                     
-                    <footer className="text-center py-16 opacity-30 border-t border-white/5">
-                        <p className="text-[11px] font-black tracking-[1.8em] text-slate-500 uppercase ml-[1.8em]">SchahlLED GmbH • Professional Maintenance Console</p>
+                    <footer className="text-center py-20 opacity-30 border-t border-white/5">
+                        <p className="text-[11px] font-black tracking-[2em] text-slate-500 uppercase ml-[2em]">SchahlLED GmbH • Professional Maintenance Console</p>
                     </footer>
                 </div>
             );
