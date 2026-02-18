@@ -14,8 +14,8 @@
     "react-dom": "https://esm.sh/react-dom@19.0.0",
     "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
     "lucide-react": "https://esm.sh/lucide-react@0.460.0?external=react,react-dom",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react/": "https://esm.sh/react@^19.2.4/"
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/"
   }
 }
 </script>
@@ -45,14 +45,46 @@
             50% { opacity: 1; transform: scale(1.1); }
         }
         .twinkle { animation: twinkling var(--dur) infinite ease-in-out; }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 2rem;
+        }
+
+        .led-button {
+            background: linear-gradient(135deg, #00B2FF 0%, #0066FF 100%);
+            box-shadow: 0 0 20px rgba(0, 178, 255, 0.4);
+            transition: all 0.3s ease;
+            color: white;
+            font-weight: 900;
+        }
+        .led-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(0, 178, 255, 0.6);
+        }
+
+        .step-path {
+            position: relative;
+            padding-left: 3rem;
+            border-left: 2px solid rgba(0, 178, 255, 0.1);
+        }
+        .step-path::before {
+            content: '';
+            position: absolute;
+            left: -9px;
+            top: 0;
+            width: 1rem;
+            height: 1rem;
+            background: #00B2FF;
+            border-radius: 50%;
+            box-shadow: 0 0 15px #00B2FF;
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
-    <script type="text/babel" data-type="module" data-presets="react,typescript">
-        // The script content from index.tsx will be bundled here by the logic or the file itself will be loaded.
-        // For Babel-standalone on GitHub Pages, we will use the merged index.tsx content.
-    </script>
-    <script type="text/babel" data-type="module" src="index.tsx"></script>
+    <script type="text/babel" data-type="module" data-presets="react,typescript" src="index.tsx"></script>
 </body>
 </html>
