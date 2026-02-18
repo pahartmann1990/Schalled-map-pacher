@@ -9,11 +9,13 @@
   - Absolut blickdicht (Farbe: `#00040D`).
   - Weißer Logo-Container mit `90px` Logo-Höhe.
   - Sticky-Positionierung.
-  - **Links**: Logo -> schahlled.de | Text -> CC-Portal.
+  - **Links**: Logo -> schahlled.de | CC-Logo -> CC-Portal.
+  - **Korrektur**: Kein redundanter "Control Center" Text neben dem CC-Logo.
 - **UI-Komponenten**:
   - Glassmorphismus-Karten (`glass-card`) with `40px` Blur.
   - Blaue LED-Glow-Effekte für Buttons und Status-Indikatoren.
   - Keine unnötigen Status-Anzeigen ("Status Bereit" wurde entfernt).
+  - Kein Admin-Button vorhanden.
 
 ## 2. Kernfunktionen
 - **Austausch (Patch)**: Ersetzen von Seriennummern in PMU-Tags innerhalb von `.MAP`-Dateien.
@@ -32,7 +34,7 @@
    - Reiter **Use USB Wireless Adapter only** wählen -> Next.
 5. **Support (Zentrale & Technik)**:
    - **Patrick Hartmann (Service):** 0176 80536466 oder 089 9011982-36 (Festnetz, kommt am Handy an).
-   - **Technischer Leiter (Abteilungsleiter):** 089 9011982-20
+   - **Daniel Seehaus (Technischer Leiter):** 089 9011982-20
    - **SchahlLED Zentrale:** 089 9011982-0
 
 ## 4. Leuchten Reset (USB) - Korrekter Ablauf
@@ -41,10 +43,11 @@
 3. **Auswahl**: Gewünschte Positionen markieren (i.d.R. nur **"Reset to Factory Default Network"**).
 4. **Durchführung**: Button **"Reset via USB"** klicken, warten bis fertig, dann Fenster schließen.
 5. **Sync**: Danach mit dem **Wireless Stick** die Leuchte wieder synchronisieren (Sync Map).
-6. **Zusatz (Support)**: Identisch zu Tab 1 inkl. Technischer Leiter (-20).
+6. **Zusatz (Support)**: Identisch zu Tab 1 inkl. Daniel Seehaus (-20).
 
 ## 5. No-Go's
 - Den Sternenhimmel-Hintergrund entfernen.
 - Den Header transparent machen.
-- Den Technischen Leiter vergessen.
-- Support-Nummern im Reset-Tab falsch nummerieren oder kürzen.
+- Den Namen "Daniel Seehaus" falsch schreiben.
+- Redundanten Text im Header anzeigen.
+- Admin-Buttons einfügen.

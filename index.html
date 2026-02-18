@@ -232,7 +232,7 @@
                     <div className="flex items-center gap-4 bg-black/40 p-4 rounded-xl border border-white/5 shadow-inner">
                         <ShieldCheck size={24} className="text-blue-400"/>
                         <div>
-                            <p className="text-[10px] text-slate-500 uppercase font-black">Technischer Leiter (Abteilungsleiter)</p>
+                            <p className="text-[10px] text-slate-500 uppercase font-black">Daniel Seehaus (Technischer Leiter)</p>
                             <p className="text-white font-bold">Zentrale: 089 9011982-20</p>
                         </div>
                     </div>
@@ -360,9 +360,9 @@
                             <a href="https://www.schahlled.de" target="_blank" rel="noopener" className="brand-logo-container">
                                 <img src={thorluxLogo} className="brand-logo-img" alt="SchahlLED" />
                             </a>
-                            <a href="https://www.schahlled-control-center.de" target="_blank" rel="noopener" className="flex items-center gap-4 hover:brightness-125 transition-all">
+                            <a href="https://www.schahlled-control-center.de" target="_blank" rel="noopener" className="flex items-center hover:brightness-125 transition-all">
                                 <img src={ccLogo} className="h-10" alt="Control Center" />
-                                <span className="text-2xl font-black text-slate-500 tracking-tight uppercase">Control Center</span>
+                                {/* Redundantes Control Center Label entfernt */}
                             </a>
                         </div>
                         <button onClick={() => setShowHelp(true)} className="text-[13px] font-black text-blue-400 flex items-center gap-3 tracking-[0.5em] uppercase hover:text-white transition-all transform hover:scale-105">
@@ -434,7 +434,7 @@
 
                     {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
                     <footer className="text-center py-20 opacity-30 border-t border-white/5 bg-black/80">
-                        <p className="text-[10px] font-black tracking-[3em] text-slate-600 uppercase ml-[3em]">SchahlLED GmbH • Maintenance Console v4.6</p>
+                        <p className="text-[10px] font-black tracking-[3em] text-slate-600 uppercase ml-[3em]">SchahlLED GmbH • Maintenance Console v4.7</p>
                     </footer>
                 </div>
             );
