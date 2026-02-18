@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SchahlLED | Maintenance Console</title>
+    <title>SchahlLED | Map-Configurator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -177,12 +177,14 @@
         import { createRoot } from 'react-dom/client';
         import { 
             Upload, Download, Search, ChevronDown, Settings, ArrowRight, Trash2, HelpCircle, Info, X,
-            Wifi, RefreshCw, Monitor, Usb, PhoneCall, MousePointerClick, AlertTriangle, User, Headphones, Activity, ListChecks, ShieldCheck
+            Wifi, RefreshCw, Monitor, Usb, MousePointerClick, AlertTriangle, User, Headphones, Activity, ListChecks, ShieldCheck, Lock, Check, Zap, Sun
         } from 'lucide-react';
+
+        // --- COMPONENTS ---
 
         const SkyBackground = () => {
             const stars = useMemo(() => {
-                return Array.from({ length: 280 }).map((_, i) => ({
+                return Array.from({ length: 300 }).map((_, i) => ({
                     id: i,
                     top: `${Math.random() * 100}%`,
                     left: `${Math.random() * 100}%`,
@@ -197,22 +199,54 @@
                     <div className="milky-way"></div>
                     <div className="star-layer">
                         {stars.map(s => (
-                            <div 
-                                key={s.id}
-                                className={`star ${s.twinkle ? 'twinkle' : ''}`}
-                                style={{
-                                    top: s.top,
-                                    left: s.left,
-                                    width: `${s.size}px`,
-                                    height: `${s.size}px`,
-                                    '--dur': s.dur
-                                }}
-                            />
+                            <div key={s.id} className={`star ${s.twinkle ? 'twinkle' : ''}`} style={{ top: s.top, left: s.left, width: `${s.size}px`, height: `${s.size}px`, '--dur': s.dur }} />
                         ))}
                     </div>
                     <div className="cloud-veil cloud-slow" style={{ width: '1000px', height: '500px', top: '5%', opacity: 0.2 }}></div>
                     <div className="cloud-veil cloud-mid" style={{ width: '1300px', height: '650px', top: '40%', opacity: 0.15, animationDelay: '-60s' }}></div>
-                    <div className="cloud-veil cloud-slow" style={{ width: '800px', height: '400px', top: '75%', opacity: 0.2, animationDelay: '-120s' }}></div>
+                </div>
+            );
+        };
+
+        const SearchableSelect = ({ options, value, onChange, placeholder = "Seriennummer wählen..." }) => {
+            const [isOpen, setIsOpen] = useState(false);
+            const [search, setSearch] = useState('');
+            const ref = useRef(null);
+
+            useEffect(() => {
+                const handleClickOutside = (e) => { if (ref.current && !ref.current.contains(e.target)) setIsOpen(false); };
+                document.addEventListener("mousedown", handleClickOutside);
+                return () => document.removeEventListener("mousedown", handleClickOutside);
+            }, []);
+
+            const filtered = options.filter(o => o.value.toUpperCase().includes(search.toUpperCase()));
+            const selected = options.find(o => o.value === value);
+
+            return (
+                <div className="relative w-full" ref={ref}>
+                    <div onClick={() => setIsOpen(!isOpen)} className="input-bezel rounded-xl px-6 py-4 text-white font-mono cursor-pointer flex justify-between items-center hover:border-blue-400 transition-all">
+                        <span className={!selected ? 'text-slate-500' : ''}>{selected ? selected.value : placeholder}</span>
+                        <ChevronDown size={18} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                    </div>
+                    {isOpen && (
+                        <div className="absolute z-[3000] w-full mt-2 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                            <div className="p-4 border-b border-white/5">
+                                <input autoFocus type="text" placeholder="Suchen (letzte Ziffern)..." value={search} onChange={e => setSearch(e.target.value)} className="w-full bg-black/60 rounded-lg px-4 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-blue-500" />
+                            </div>
+                            <div className="max-h-60 overflow-y-auto help-scroll">
+                                {filtered.map(opt => (
+                                    <div key={opt.value} onClick={() => { onChange(opt.value); setIsOpen(false); setSearch(''); }} className={`px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-blue-500/10 ${value === opt.value ? 'bg-blue-500/20 text-blue-400' : 'text-slate-300'}`}>
+                                        <div className="flex flex-col">
+                                            <span className="font-mono text-sm">{opt.value}</span>
+                                            {opt.network && <span className="text-[10px] text-slate-500 uppercase font-black">{opt.network}</span>}
+                                        </div>
+                                        {value === opt.value && <Check size={16} />}
+                                    </div>
+                                ))}
+                                {filtered.length === 0 && <div className="p-6 text-center text-slate-500 text-xs">Keine Treffer</div>}
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -225,8 +259,7 @@
                         <User size={24} className="text-blue-400"/>
                         <div>
                             <p className="text-[10px] text-slate-500 uppercase font-black">Patrick Hartmann (Service)</p>
-                            <p className="text-white font-bold">Mobil: 0176 80536466</p>
-                            <p className="text-white font-bold">Festnetz (Handy): 089 9011982-36</p>
+                            <p className="text-white font-bold">Mobil: 0176 80536466 | Festnetz: 089 9011982-36</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-4 bg-black/40 p-4 rounded-xl border border-white/5 shadow-inner">
@@ -253,76 +286,29 @@
                 <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/95 backdrop-blur-2xl p-8">
                     <div className="glass-card w-full max-w-6xl max-h-[92vh] overflow-hidden flex flex-col shadow-[0_0_100px_rgba(0,178,255,0.15)]">
                         <div className="p-10 border-b border-white/10 flex justify-between items-center bg-black/40">
-                            <div className="flex items-center gap-8">
-                                <HelpCircle className="text-blue-400" size={44} />
-                                <h2 className="text-3xl font-black text-white uppercase tracking-widest">Technischer Leitfaden</h2>
-                            </div>
+                            <div className="flex items-center gap-8"><HelpCircle className="text-blue-400" size={44} /><h2 className="text-3xl font-black text-white uppercase tracking-widest">Leitfaden</h2></div>
                             <button onClick={onClose} className="p-3 hover:bg-white/10 rounded-full transition-all"><X size={36} className="text-slate-500 hover:text-white"/></button>
                         </div>
                         <div className="flex bg-black/60 border-b border-white/10">
-                            <button onClick={() => setTab('commission')} className={`px-16 py-8 text-sm font-black uppercase tracking-widest transition-all ${tab === 'commission' ? 'text-blue-400 border-b-4 border-blue-500 bg-blue-500/10' : 'text-slate-500 hover:text-slate-100'}`}>Leuchten Finden & Zuweisen</button>
+                            <button onClick={() => setTab('commission')} className={`px-16 py-8 text-sm font-black uppercase tracking-widest transition-all ${tab === 'commission' ? 'text-blue-400 border-b-4 border-blue-500 bg-blue-500/10' : 'text-slate-500 hover:text-slate-100'}`}>Inbetriebnahme</button>
                             <button onClick={() => setTab('reset')} className={`px-16 py-8 text-sm font-black uppercase tracking-widest transition-all ${tab === 'reset' ? 'text-blue-400 border-b-4 border-blue-500 bg-blue-500/10' : 'text-slate-500 hover:text-slate-100'}`}>Leuchten Reset (USB)</button>
                         </div>
                         <div className="p-16 overflow-y-auto help-scroll flex-1 bg-[#010815]">
                             {tab === 'commission' ? (
                                 <div className="grid lg:grid-cols-2 gap-16">
                                     <div className="space-y-10">
-                                        <div className="step-path">
-                                            <h4 className="text-white font-black text-base uppercase mb-4 flex items-center gap-4"><Monitor size={24} className="text-blue-400"/> 1. Add Fixtures Wizard</h4>
-                                            <p className="text-slate-200 text-sm leading-relaxed">Öffnen Sie <b>Add Fixtures</b>. Wählen Sie im Wizard den Punkt: <br/><br/>
-                                            <span className="text-white font-bold bg-blue-900/40 px-4 py-3 rounded-xl border border-blue-500/40 inline-block shadow-lg">
-                                                "discovering them using a USB Wireless Adapter"
-                                            </span><br/><br/>Klicken Sie auf <b>Next</b>.</p>
-                                        </div>
-                                        <div className="step-path">
-                                            <h4 className="text-white font-black text-base uppercase mb-4 flex items-center gap-4"><RefreshCw size={24} className="text-blue-400"/> 2. Netzwerk & Discover</h4>
-                                            <p className="text-slate-200 text-sm leading-relaxed">Wählen Sie das Netzwerk und klicken Sie auf <b>Discover</b>. <br/><br/>
-                                            <span className="text-blue-400 font-black block bg-blue-500/10 p-5 border border-blue-400/40 rounded-2xl">
-                                                3-MAL-REGEL: Klicken Sie insgesamt 3-mal hintereinander auf Discover! Warten Sie nach jedem Klick 15-20 Sekunden.
-                                            </span>
-                                            <br/>Wichtig: Mit Wireless Stick in der Nähe der Leuchte sein. Bei Erfolg Netzwerk merken. Falls nötig <b>"Scan for Networks"</b> nutzen.</p>
-                                        </div>
-                                        <div className="step-path">
-                                            <h4 className="text-white font-black text-base uppercase mb-4 flex items-center gap-4"><MousePointerClick size={24} className="text-blue-400"/> 3. Edit Fixture (Zuweisung)</h4>
-                                            <p className="text-slate-200 text-sm leading-relaxed">Rechtsklick oder Doppelklick auf die Leuchte im Plan. <br/><br/>
-                                            Klicken Sie unten rechts auf das <b>Plus (+) Symbol</b>. Wählen Sie das korrekte Netzwerk unter <b>Current Network</b> aus und drücken Sie <b>OK</b>.</p>
-                                        </div>
+                                        <div className="step-path"><h4 className="text-white font-black text-base uppercase mb-4 flex items-center gap-4"><Monitor size={24} className="text-blue-400"/> 1. Add Fixtures Wizard</h4><p className="text-slate-200 text-sm leading-relaxed">Pkt: <b>"discovering them using a USB Wireless Adapter"</b> wählen.</p></div>
+                                        <div className="step-path"><h4 className="text-white font-black text-base uppercase mb-4 flex items-center gap-4"><RefreshCw size={24} className="text-blue-400"/> 2. 3-mal Discover</h4><p className="text-slate-200 text-sm leading-relaxed">Klicken Sie 3-mal auf Discover (je 15s warten). Wichtig: Wireless Stick nah an der Leuchte.</p></div>
                                     </div>
-                                    <div className="space-y-10">
-                                        <div className="step-path">
-                                            <h4 className="text-white font-black text-base uppercase mb-4 flex items-center gap-4"><Wifi size={24} className="text-blue-400"/> 4. Synchronisation (Sync Map)</h4>
-                                            <p className="text-slate-200 text-sm leading-relaxed">Leuchte auswählen und oben auf <b>Sync Map</b> klicken. <br/><br/>
-                                            Reiter <b>"Use USB Wireless Adapter only"</b> wählen -> <b>Next</b>. Warten bis fertig.</p>
-                                        </div>
-                                        <SupportSection title="5. Support (Zentrale & Technik)" />
-                                    </div>
+                                    <SupportSection title="Support (Zentrale & Technik)" />
                                 </div>
                             ) : (
                                 <div className="grid lg:grid-cols-2 gap-16">
                                     <div className="space-y-10">
-                                        <div className="step-path">
-                                            <h4 className="text-white font-black text-base uppercase mb-4 flex items-center gap-4"><Usb size={24} className="text-blue-400"/> 1. Hardware Verbindung</h4>
-                                            <p className="text-slate-200 text-sm leading-relaxed">Verbinden Sie die Leuchte per USB (TTL oder Micro) mit Ihrem PC. Stellen Sie sicher, dass die Verbindung stabil ist.</p>
-                                        </div>
-                                        <div className="step-path">
-                                            <h4 className="text-white font-black text-base uppercase mb-4 flex items-center gap-4"><MousePointerClick size={24} className="text-blue-400"/> 2. Menü: Advanced > Reset Items</h4>
-                                            <p className="text-slate-200 text-sm leading-relaxed">Machen Sie einen <b>Rechtsklick</b> auf die betreffende Leuchte. Wählen Sie den Reiter <b>"Advanced"</b> und dann den Unterpunkt <b>"Reset Items"</b> aus.</p>
-                                        </div>
-                                        <div className="step-path">
-                                            <h4 className="text-white font-black text-base uppercase mb-4 flex items-center gap-4"><ListChecks size={24} className="text-blue-400"/> 3. Auswahl & Durchführung</h4>
-                                            <p className="text-slate-200 text-sm leading-relaxed">Wählen Sie die gewünschten Positionen aus (in der Regel nur <b>"Reset to Factory Default Network"</b>). Klicken Sie anschließend auf den Button <b>"Reset via USB"</b> und warten Sie den Vorgang ab. Danach das Fenster schließen.</p>
-                                        </div>
+                                        <div className="step-path"><h4 className="text-white font-black text-base uppercase mb-4 flex items-center gap-4"><Usb size={24} className="text-blue-400"/> 1. Verbindung</h4><p className="text-slate-200 text-sm leading-relaxed">Leuchte per USB TTL/Micro verbinden.</p></div>
+                                        <div className="step-path"><h4 className="text-white font-black text-base uppercase mb-4 flex items-center gap-4"><MousePointerClick size={24} className="text-blue-400"/> 2. Menü</h4><p className="text-slate-200 text-sm leading-relaxed">Rechtsklick -> <b>Advanced</b> -> <b>Reset Items</b>. <b>"Reset to Factory Default Network"</b> wählen und <b>"Reset via USB"</b> klicken.</p></div>
                                     </div>
-                                    <div className="space-y-10">
-                                        <div className="bg-amber-900/20 border border-amber-500/30 p-10 rounded-3xl flex items-start gap-8 shadow-2xl">
-                                            <AlertTriangle size={44} className="text-amber-500 shrink-0"/>
-                                            <div className="space-y-4">
-                                                <h5 className="text-white font-black text-sm uppercase tracking-widest">WICHTIGER ABSCHLUSSSCHRITT</h5>
-                                                <p className="text-slate-200 text-sm leading-relaxed font-bold">Nach dem Reset MUSS die Leuchte mit dem <b>Wireless Stick</b> wieder synchronisiert werden (Sync Map), damit sie im System registriert wird!</p>
-                                            </div>
-                                        </div>
-                                        <SupportSection title="Technischer Support (Zusatz)" />
-                                    </div>
+                                    <SupportSection title="Support (Zusatz)" />
                                 </div>
                             )}
                         </div>
@@ -331,23 +317,89 @@
             );
         };
 
+        // --- MAIN APP ---
+
         const App = () => {
             const [file, setFile] = useState(null);
             const [showHelp, setShowHelp] = useState(false);
+            const [activeTab, setActiveTab] = useState('patch'); // 'patch' or 'dh'
+            const [serialOptions, setSerialOptions] = useState([]);
             const [patchJobs, setPatchJobs] = useState([{ id: Date.now(), oldSN: '', newSN: '' }]);
+            const [dhTransfer, setDhTransfer] = useState({ sourceSN: '', targetSN: '' });
             const [isDone, setIsDone] = useState(false);
             const [dlUrl, setDlUrl] = useState(null);
 
             const thorluxLogo = "https://www.thorlux.de/assets/images/schahlled-logo-colour-c4e9ae384335c5a599815fb347bd845a.svg";
             const ccLogo = "https://www.schahlled-control-center.de/build/img/schahlled/brand-logo.b4d1183a.svg";
 
-            const run = () => {
+            const handleFileUpload = (e) => {
+                const f = e.target.files[0];
+                if (!f) return;
+                const r = new FileReader();
+                r.onload = (ev) => {
+                    const content = ev.target.result;
+                    setFile({ name: f.name, content });
+                    
+                    // Regex for extracting SNs and Networks from .map
+                    const snRegex = /<pmu\s+[^>]*sn="([^"]+)"/gi;
+                    const netRegex = /<pmu\s+[^>]*sn="([^"]+)"\s+[^>]*network="([^"]+)"/gi;
+                    
+                    const matches = [];
+                    let match;
+                    while ((match = netRegex.exec(content)) !== null) {
+                        matches.push({ value: match[1], network: match[2] });
+                    }
+                    if (matches.length === 0) {
+                        let snMatch;
+                        while ((snMatch = snRegex.exec(content)) !== null) {
+                            matches.push({ value: snMatch[1], network: 'N/A' });
+                        }
+                    }
+                    // Filter duplicates
+                    const unique = Array.from(new Map(matches.map(m => [m.value, m])).values());
+                    setSerialOptions(unique);
+                };
+                r.readAsText(f);
+            };
+
+            const runConfig = () => {
                 let res = file.content;
+
+                // 1. SN Patching
                 patchJobs.forEach(job => {
                     if (!job.oldSN || !job.newSN) return;
                     const regex = new RegExp(`sn\\s*=\\s*"${job.oldSN}"`, 'gi');
                     res = res.replace(regex, `sn="${job.newSN}"`);
                 });
+
+                // 2. DH Transfer (Kopie der cal_ Attribute)
+                if (dhTransfer.sourceSN && dhTransfer.targetSN) {
+                    const sourceRegex = new RegExp(`<pmu[^>]*sn="${dhTransfer.sourceSN}"([^>]*)>`, 'i');
+                    const targetRegex = new RegExp(`<pmu[^>]*sn="${dhTransfer.targetSN}"([^>]*)>`, 'i');
+                    
+                    const sourceMatch = res.match(sourceRegex);
+                    if (sourceMatch) {
+                        const attributes = sourceMatch[1];
+                        // Extrahiere DH Attribute (cal_, lux_, etc.)
+                        const dhAttrs = attributes.match(/(cal_[^=]+|lux_[^=]+|occupied_[^=]+|vacant_[^=]+)="[^"]*"/gi);
+                        if (dhAttrs) {
+                            res = res.replace(targetRegex, (full, currentAttrs) => {
+                                let updatedAttrs = currentAttrs;
+                                dhAttrs.forEach(newAttr => {
+                                    const attrName = newAttr.split('=')[0];
+                                    const attrRegex = new RegExp(`${attrName}="[^"]*"`, 'i');
+                                    if (updatedAttrs.match(attrRegex)) {
+                                        updatedAttrs = updatedAttrs.replace(attrRegex, newAttr);
+                                    } else {
+                                        updatedAttrs += ` ${newAttr}`;
+                                    }
+                                });
+                                return `<pmu sn="${dhTransfer.targetSN}"${updatedAttrs}>`;
+                            });
+                        }
+                    }
+                }
+
                 setDlUrl(URL.createObjectURL(new Blob([res], { type: 'text/plain' })));
                 setIsDone(true);
             };
@@ -361,48 +413,74 @@
                                 <img src={thorluxLogo} className="brand-logo-img" alt="SchahlLED" />
                             </a>
                             <a href="https://www.schahlled-control-center.de" target="_blank" rel="noopener" className="flex items-center hover:brightness-125 transition-all">
-                                <img src={ccLogo} className="h-10" alt="Control Center" />
-                                {/* Redundantes Control Center Label entfernt */}
+                                <img src={ccLogo} className="h-10" alt="CC" />
                             </a>
                         </div>
-                        <button onClick={() => setShowHelp(true)} className="text-[13px] font-black text-blue-400 flex items-center gap-3 tracking-[0.5em] uppercase hover:text-white transition-all transform hover:scale-105">
-                            <HelpCircle size={26}/> HILFE
-                        </button>
+                        <div className="flex items-center gap-12">
+                            <button onClick={() => alert('Admin-Vorbereitung')} className="text-[13px] font-black text-slate-500 flex items-center gap-3 tracking-[0.5em] uppercase hover:text-white transition-all transform hover:scale-105"><Lock size={22}/> ADMIN</button>
+                            <button onClick={() => setShowHelp(true)} className="text-[13px] font-black text-blue-400 flex items-center gap-3 tracking-[0.5em] uppercase hover:text-white transition-all transform hover:scale-105"><HelpCircle size={26}/> HILFE</button>
+                        </div>
                     </header>
 
                     <main className="flex-1 flex flex-col items-center p-14 z-10">
                         <div className="w-full max-w-7xl space-y-20">
                             <div className="text-center space-y-10">
-                                <h1 className="text-7xl font-light text-white uppercase tracking-[0.6em] ml-[0.6em] filter drop-shadow-[0_0_40px_rgba(0,178,255,0.45)]">MAINTENANCE CONSOLE</h1>
+                                <h1 className="text-7xl font-light text-white uppercase tracking-[0.6em] ml-[0.6em] filter drop-shadow-[0_0_40px_rgba(0,178,255,0.45)]">MAP-CONFIGURATOR</h1>
                                 <div className="w-56 h-1 bg-blue-500 mx-auto rounded-full led-status-dot"></div>
                             </div>
 
                             {!file ? (
                                 <div className="glass-card p-40 flex flex-col items-center border-dashed border-2 border-slate-700 hover:border-blue-400 cursor-pointer relative group">
                                     <Upload className="w-20 h-20 text-blue-400 mb-8" />
-                                    <h2 className="text-4xl font-black text-white uppercase tracking-widest">Map-Datei laden</h2>
-                                    <input type="file" accept=".map" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => {
-                                        const f = e.target.files[0]; if (f) { const r = new FileReader(); r.onload = (ev) => setFile({ name: f.name, content: ev.target.result }); r.readAsText(f); }
-                                    }} />
+                                    <h2 className="text-4xl font-black text-white uppercase tracking-widest">Map-Datei (.MAP) laden</h2>
+                                    <input type="file" accept=".map" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileUpload} />
                                 </div>
                             ) : (
                                 <div className="grid lg:grid-cols-12 gap-16 animate-in fade-in duration-500">
-                                    <div className="lg:col-span-8 glass-card p-12 space-y-10">
-                                        <button onClick={() => setPatchJobs([...patchJobs, { id: Date.now(), oldSN: '', newSN: '' }])} className="w-full py-8 input-bezel text-blue-400 font-black rounded-2xl uppercase tracking-[0.4em] hover:brightness-125 transition-all">+ Position hinzufügen</button>
-                                        {patchJobs.map((job) => (
-                                            <div key={job.id} className="bg-black/40 p-10 rounded-3xl border border-white/5 flex items-center gap-10 relative">
-                                                <div className="flex-1 space-y-4">
-                                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Alte SN</label>
-                                                    <input type="text" value={job.oldSN} onChange={e => setPatchJobs(patchJobs.map(j => j.id === job.id ? {...j, oldSN: e.target.value.toUpperCase()} : j))} className="w-full input-bezel rounded-xl px-6 py-4 text-white font-mono outline-none" placeholder="SN123456" />
+                                    <div className="lg:col-span-8 glass-card overflow-hidden flex flex-col border-white/5">
+                                        <div className="flex bg-black/40 border-b border-white/10">
+                                            <button onClick={() => setActiveTab('patch')} className={`flex-1 py-8 text-xs font-black uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-4 ${activeTab === 'patch' ? 'text-blue-400 bg-blue-500/10 border-b-2 border-blue-500' : 'text-slate-500 hover:text-white'}`}><Zap size={18}/> SN Patching</button>
+                                            <button onClick={() => setActiveTab('dh')} className={`flex-1 py-8 text-xs font-black uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-4 ${activeTab === 'dh' ? 'text-blue-400 bg-blue-500/10 border-b-2 border-blue-500' : 'text-slate-500 hover:text-white'}`}><Sun size={18}/> DH Transfer</button>
+                                        </div>
+                                        
+                                        <div className="p-12 space-y-10 min-h-[400px]">
+                                            {activeTab === 'patch' ? (
+                                                <>
+                                                    <button onClick={() => setPatchJobs([...patchJobs, { id: Date.now(), oldSN: '', newSN: '' }])} className="w-full py-6 input-bezel text-blue-400 font-black rounded-2xl uppercase tracking-[0.3em] hover:brightness-125 transition-all">+ SN-Tausch hinzufügen</button>
+                                                    {patchJobs.map((job) => (
+                                                        <div key={job.id} className="bg-black/40 p-8 rounded-3xl border border-white/5 flex items-center gap-10">
+                                                            <div className="flex-1 space-y-3">
+                                                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Alte SN (aus Datei)</label>
+                                                                <SearchableSelect options={serialOptions} value={job.oldSN} onChange={val => setPatchJobs(patchJobs.map(j => j.id === job.id ? {...j, oldSN: val} : j))} />
+                                                            </div>
+                                                            <ArrowRight size={24} className="text-slate-700 mt-6" />
+                                                            <div className="flex-1 space-y-3">
+                                                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Neue SN (Ersatz)</label>
+                                                                <input type="text" value={job.newSN} onChange={e => setPatchJobs(patchJobs.map(j => j.id === job.id ? {...j, newSN: e.target.value.toUpperCase()} : j))} className="w-full input-bezel rounded-xl px-6 py-4 text-white font-mono outline-none" placeholder="SN123456" />
+                                                            </div>
+                                                            <button onClick={() => setPatchJobs(patchJobs.filter(j => j.id !== job.id))} className="mt-6 text-slate-700 hover:text-red-500"><Trash2 size={20}/></button>
+                                                        </div>
+                                                    ))}
+                                                </>
+                                            ) : (
+                                                <div className="space-y-12">
+                                                    <div className="bg-blue-500/5 p-10 rounded-3xl border border-blue-500/20 space-y-8">
+                                                        <h3 className="text-white font-black text-sm uppercase tracking-widest flex items-center gap-4"><Info size={20} className="text-blue-400"/> Tageslicht-Kalibrierung kopieren</h3>
+                                                        <p className="text-slate-400 text-xs leading-relaxed">Kopiert alle <b>cal_</b>, <b>lux_</b> und <b>occupied_</b> Attribute von einer Quell-Leuchte auf eine Ziel-Leuchte in der MAP.</p>
+                                                        <div className="grid lg:grid-cols-2 gap-10">
+                                                            <div className="space-y-3">
+                                                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Quelle (Kalibrierte Leuchte)</label>
+                                                                <SearchableSelect options={serialOptions} value={dhTransfer.sourceSN} onChange={val => setDhTransfer({...dhTransfer, sourceSN: val})} placeholder="Quelle wählen..." />
+                                                            </div>
+                                                            <div className="space-y-3">
+                                                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ziel (Leuchte ohne DH-Werte)</label>
+                                                                <SearchableSelect options={serialOptions} value={dhTransfer.targetSN} onChange={val => setDhTransfer({...dhTransfer, targetSN: val})} placeholder="Ziel wählen..." />
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <ArrowRight size={30} className="text-slate-700 mt-8" />
-                                                <div className="flex-1 space-y-4">
-                                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Neue SN</label>
-                                                    <input type="text" value={job.newSN} onChange={e => setPatchJobs(patchJobs.map(j => j.id === job.id ? {...j, newSN: e.target.value.toUpperCase()} : j))} className="w-full input-bezel rounded-xl px-6 py-4 text-white font-mono outline-none" placeholder="SN999888" />
-                                                </div>
-                                                <button onClick={() => setPatchJobs(patchJobs.filter(j => j.id !== job.id))} className="mt-8 text-slate-700 hover:text-red-500 transition-colors"><Trash2 size={24}/></button>
-                                            </div>
-                                        ))}
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className="lg:col-span-4 flex flex-col gap-12">
@@ -415,16 +493,16 @@
                                                 <p className="text-[12px] text-slate-500 italic truncate opacity-80 border-y border-white/10 py-6 tracking-[0.4em] font-black">{file.name}</p>
                                             </div>
                                             {!isDone ? (
-                                                <button onClick={run} className="w-full py-10 rounded-2xl led-button text-base tracking-[0.5em]">PATCH STARTEN</button>
+                                                <button onClick={runConfig} className="w-full py-10 rounded-2xl led-button text-base tracking-[0.5em]">CONFIG STARTEN</button>
                                             ) : (
                                                 <div className="space-y-10">
                                                     <div className="bg-emerald-500/10 border border-emerald-500/40 p-8 rounded-2xl text-[11px] text-emerald-400 font-bold italic text-left leading-relaxed">
-                                                        <Info className="mb-4" size={20}/> PATCH ERFOLGREICH. Bitte Map drahtlos synchronisieren.
+                                                        <Info className="mb-4" size={20}/> CONFIG ERFOLGREICH. Bitte Map drahtlos synchronisieren.
                                                     </div>
-                                                    <a href={dlUrl} download={file.name.replace('.map', '_patched.map')} className="flex items-center justify-center w-full py-10 bg-white text-black font-black rounded-2xl uppercase shadow-2xl tracking-[0.5em] text-base hover:bg-slate-100 transition-all"><Download className="mr-4" size={28}/> DOWNLOAD</a>
+                                                    <a href={dlUrl} download={file.name.replace('.map', '_config.map')} className="flex items-center justify-center w-full py-10 bg-white text-black font-black rounded-2xl uppercase shadow-2xl tracking-[0.5em] text-base hover:bg-slate-100 transition-all"><Download className="mr-4" size={28}/> DOWNLOAD</a>
                                                 </div>
                                             )}
-                                            <button onClick={() => {setFile(null); setIsDone(false); setDlUrl(null);}} className="text-slate-600 text-[11px] font-black uppercase tracking-widest hover:text-red-500 transition-colors">Andere Map laden</button>
+                                            <button onClick={() => {setFile(null); setIsDone(false); setDlUrl(null);}} className="text-slate-600 text-[11px] font-black uppercase tracking-widest hover:text-red-500 transition-colors">Datei wechseln</button>
                                         </div>
                                     </div>
                                 </div>
@@ -434,7 +512,7 @@
 
                     {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
                     <footer className="text-center py-20 opacity-30 border-t border-white/5 bg-black/80">
-                        <p className="text-[10px] font-black tracking-[3em] text-slate-600 uppercase ml-[3em]">SchahlLED GmbH • Maintenance Console v4.7</p>
+                        <p className="text-[10px] font-black tracking-[3em] text-slate-600 uppercase ml-[3em]">SchahlLED GmbH • Map-Configurator v5.0</p>
                     </footer>
                 </div>
             );
