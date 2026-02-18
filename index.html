@@ -22,89 +22,49 @@
         :root {
             --schahl-blue: #0089D0;
             --schahl-dark: #000B18;
-            --led-cyan: #00f2ff;
             --led-glow: rgba(0, 137, 208, 0.4);
         }
-        
         body { 
             font-family: 'Inter', sans-serif; 
             background-color: var(--schahl-dark); 
             background-image: 
-                radial-gradient(circle at 15% 15%, rgba(0, 137, 208, 0.12) 0%, transparent 50%),
-                radial-gradient(circle at 85% 85%, rgba(0, 137, 208, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 10% 10%, rgba(0, 137, 208, 0.15) 0%, transparent 45%),
                 linear-gradient(rgba(0, 11, 24, 0.98), rgba(0, 11, 24, 0.98)),
                 url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
-            color: #f8fafc; 
-            margin: 0; 
-            min-height: 100vh;
+            color: #f8fafc; margin: 0; min-height: 100vh;
         }
-
-        .led-spotlight {
-            position: fixed;
-            width: 1000px;
-            height: 1000px;
-            background: radial-gradient(circle, var(--led-glow) 0%, transparent 70%);
-            filter: blur(120px);
-            pointer-events: none;
-            z-index: 0;
-            opacity: 0.2;
-        }
-
         .cc-header {
-            background: rgba(0, 11, 24, 0.9);
-            backdrop-filter: blur(30px);
+            background: rgba(0, 11, 24, 0.92);
+            backdrop-filter: blur(40px);
             border-bottom: 1px solid rgba(255,255,255,0.06);
             height: 90px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.7);
         }
-
         .glass-card {
             background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(15px);
+            backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 24px;
-            box-shadow: 0 40px 80px rgba(0,0,0,0.8);
+            border-radius: 28px;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.9);
         }
-
         .led-button {
             background: var(--schahl-blue);
             box-shadow: 0 0 15px var(--led-glow);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .led-button:hover:not(:disabled) {
-            box-shadow: 0 0 40px var(--schahl-blue);
+            box-shadow: 0 0 45px var(--schahl-blue);
             transform: translateY(-2px);
-            background: #009df0;
         }
-
-        .help-scroll::-webkit-scrollbar { width: 6px; }
-        .help-scroll::-webkit-scrollbar-track { background: transparent; }
-        .help-scroll::-webkit-scrollbar-thumb { background: rgba(0, 137, 208, 0.3); border-radius: 10px; }
-
         @keyframes pulse-led {
-            0%, 100% { opacity: 0.3; transform: scale(1); }
+            0%, 100% { opacity: 0.2; transform: scale(1); }
             50% { opacity: 0.8; transform: scale(1.1); }
         }
-        .led-status-dot {
-            animation: pulse-led 2.5s infinite ease-in-out;
+        .led-status-dot { animation: pulse-led 3s infinite ease-in-out; }
+        .step-path {
+            position: relative; padding-left: 36px; border-left: 1px solid rgba(0, 137, 208, 0.15); margin-bottom: 32px;
         }
-
-        .step-line {
-            position: relative;
-            padding-left: 32px;
-            border-left: 1px solid rgba(0, 137, 208, 0.2);
-            margin-bottom: 30px;
-        }
-        .step-line::before {
-            content: '';
-            position: absolute;
-            left: -5px;
-            top: 0;
-            width: 9px;
-            height: 9px;
-            background: var(--schahl-blue);
-            border-radius: 50%;
-            box-shadow: 0 0 10px var(--schahl-blue);
+        .step-path::before {
+            content: ''; position: absolute; left: -5px; top: 0; width: 10px; height: 10px; background: var(--schahl-blue); border-radius: 50%; box-shadow: 0 0 12px var(--schahl-blue);
         }
     </style>
 </head>
@@ -115,20 +75,21 @@
         import React, { useState, useEffect, useRef } from 'react';
         import { createRoot } from 'react-dom/client';
         import { 
-            Upload, Zap, Download, CheckCircle2, 
-            Search, ChevronDown, Settings, Lock, Unlock,
-            HardDrive, ArrowRight, Plus, Trash2, Layout, HelpCircle, LogIn, Info, X,
-            Wifi, RefreshCw, AlertTriangle, ShieldCheck, MousePointer2, CheckSquare, Settings2
+            Upload, Zap, Download, CheckCircle2, Search, ChevronDown, Settings, Lock, Unlock,
+            HardDrive, ArrowRight, Plus, Trash2, Layout, HelpCircle, Info, X,
+            Wifi, RefreshCw, AlertTriangle, ShieldCheck, Monitor, Usb, PhoneCall
         } from 'lucide-react';
 
+        // Definitive Liste aller Kalibrierungs-Attribute aus dem SchahlLED Commissioner
         const CALIBRATION_KEYS = [
             'flags', 'map_daylight', 'map_amb_env_gain', 'amb_env_gain',
             'amb_act_lev', 'map_amb_act_lev', 'amb_inact_lev', 'map_amb_inact_lev',
             'dh_active_target_level', 'map_dh_active_target_level',
             'dh_inactive_target_level', 'map_dh_inactive_target_level',
-            'dh_amb:0', 'dh_amb:1', 'dh_amb:100', 'amb_on_hyst', 'map_amb_on_hyst',
-            'amb_off_hyst', 'map_amb_off_hyst', 'dh_meter:1', 'dh_meter:100', 
-            'dh_meter_units', 'min_dim', 'mindim', 'rampUpSpeed', 'rampDownSpeed'
+            'dh_amb_0', 'dh_amb_1', 'dh_amb_100', 'amb_on_hyst', 'map_amb_on_hyst',
+            'amb_off_hyst', 'map_amb_off_hyst', 'dh_meter_1', 'dh_meter_100', 
+            'dh_meter_units', 'min_dim', 'mindim', 'rampUpSpeed', 'rampDownSpeed',
+            'delay', 'mindelay'
         ];
 
         const parseAttributes = (tagStr) => {
@@ -139,12 +100,15 @@
             return attrs;
         };
 
+        // KRITISCHER FIX: Verwendet Wortgrenzen (\b) oder Whitespace-Prüfung, 
+        // um zu verhindern, dass dh_amb_1 innerhalb von dh_amb_100 gematcht wird.
         const updateTag = (originalTag, updates) => {
             let newTag = originalTag;
             Object.entries(updates).forEach(([key, value]) => {
-                const attrRegex = new RegExp(`${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*=\\s*"[^"]*"`, 'i');
+                // Regex sucht nach [Leerzeichen oder Start] + Key + [Gleichheitszeichen]
+                const attrRegex = new RegExp(`(\\s|^)${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*=\\s*"[^"]*"`, 'i');
                 if (attrRegex.test(newTag)) {
-                    newTag = newTag.replace(attrRegex, `${key}="${value}"`);
+                    newTag = newTag.replace(attrRegex, (match, p1) => `${p1}${key}="${value}"`);
                 } else {
                     const isSelfClosing = newTag.endsWith('/>');
                     const insertPos = isSelfClosing ? newTag.lastIndexOf('/>') : newTag.lastIndexOf('>');
@@ -158,36 +122,31 @@
             const [open, setOpen] = useState(false);
             const [search, setSearch] = useState('');
             const ref = useRef(null);
-            
             useEffect(() => {
                 const hide = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-                document.addEventListener("mousedown", hide);
-                return () => document.removeEventListener("mousedown", hide);
+                document.addEventListener("mousedown", hide); return () => document.removeEventListener("mousedown", hide);
             }, []);
-
             useEffect(() => { if (onOpenStateChange) onOpenStateChange(open); }, [open]);
-
             const filtered = options.filter(o => o.value.toLowerCase().includes(search.toLowerCase()));
             const selected = options.find(o => o.value === value);
-
             return (
                 <div className="relative" ref={ref}>
                     {label && <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2 block">{label}</label>}
-                    <div onClick={() => setOpen(!open)} className={`w-full bg-black/60 border rounded-xl px-4 py-3.5 flex justify-between items-center cursor-pointer transition-all ${open ? 'border-blue-500 shadow-[0_0_20px_rgba(0,137,208,0.2)]' : 'border-slate-800 hover:border-slate-700'}`}>
+                    <div onClick={() => setOpen(!open)} className={`w-full bg-black/60 border rounded-2xl px-5 py-4 flex justify-between items-center cursor-pointer transition-all ${open ? 'border-blue-500 shadow-[0_0_25px_rgba(0,137,208,0.25)]' : 'border-slate-800 hover:border-slate-600'}`}>
                         <span className={`font-mono text-xs truncate ${selected ? "text-white font-bold" : "text-slate-600 italic"}`}>
                             {selected ? selected.value : "Wählen..."}
                         </span>
                         <ChevronDown size={14} className={`text-blue-500 transition-transform ${open ? 'rotate-180' : ''}`} />
                     </div>
                     {open && (
-                        <div className="absolute z-[5000] w-full mt-2 bg-[#05101c] border border-blue-900/50 rounded-xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-                            <div className="p-3 border-b border-white/5 bg-black/40 flex gap-2">
+                        <div className="absolute z-[5000] w-full mt-2 bg-[#05101c] border border-blue-900/50 rounded-2xl overflow-hidden shadow-2xl">
+                            <div className="p-4 border-b border-white/5 bg-black/40 flex gap-3">
                                 <Search size={14} className="text-slate-500 mt-1" />
                                 <input autoFocus className="bg-transparent border-none outline-none text-xs w-full text-white" placeholder="Suchen..." value={search} onChange={e => setSearch(e.target.value)} />
                             </div>
-                            <div className="max-h-60 overflow-y-auto">
+                            <div className="max-h-64 overflow-y-auto">
                                 {filtered.map(o => (
-                                    <div key={o.value} onClick={() => { onChange(o.value); setOpen(false); }} className={`px-4 py-3 text-xs font-mono cursor-pointer hover:bg-blue-600/30 border-b border-white/5 last:border-0 ${value === o.value ? 'bg-blue-600 text-white font-bold' : 'text-slate-400'}`}>
+                                    <div key={o.value} onClick={() => { onChange(o.value); setOpen(false); }} className={`px-5 py-4 text-xs font-mono cursor-pointer hover:bg-blue-600/30 border-b border-white/5 last:border-0 ${value === o.value ? 'bg-blue-600 text-white font-bold' : 'text-slate-400'}`}>
                                         {o.value} <span className="opacity-30 ml-2">[{o.networkId || '??'}]</span>
                                     </div>
                                 ))}
@@ -198,99 +157,88 @@
             );
         };
 
-        const HelpModal = ({ onClose }) => (
-            <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/95 backdrop-blur-md p-6">
-                <div className="glass-card w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
-                    <div className="p-8 border-b border-white/5 flex justify-between items-center bg-black/20">
-                        <div className="flex items-center gap-4">
-                            <HelpCircle className="text-blue-500" size={32} />
-                            <div>
-                                <h2 className="text-2xl font-black text-white uppercase tracking-widest">Commissioner Kurzanleitung</h2>
-                                <p className="text-blue-400 text-[10px] font-bold uppercase tracking-widest">Professioneller Maintenance Workflow</p>
-                            </div>
-                        </div>
-                        <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-colors"><X size={28} className="text-slate-500 hover:text-white"/></button>
-                    </div>
-                    
-                    <div className="p-12 overflow-y-auto help-scroll grid lg:grid-cols-2 gap-16">
-                        <div className="space-y-8">
-                            <div className="step-line">
-                                <h4 className="text-white font-black text-xs uppercase mb-3 flex items-center gap-2"><Layout size={16} className="text-blue-500"/> 1. Leuchten hinzufügen (Discover)</h4>
-                                <p className="text-slate-400 text-xs leading-relaxed">
-                                    Gehen Sie im Commissioner auf <b>Add Fixtures</b>. Wählen Sie <b>"discovering them using a USB Wireless Adapter"</b> und klicken Sie auf <b>Next</b>.
-                                </p>
-                            </div>
-                            <div className="step-line">
-                                <h4 className="text-white font-black text-xs uppercase mb-3 flex items-center gap-2"><Wifi size={16} className="text-blue-500"/> 2. Netzwerk-Scan</h4>
-                                <p className="text-slate-400 text-xs leading-relaxed">
-                                    Wählen Sie das Netzwerk aus (z.B. <b>Factory Default Network</b>). Klicken Sie auf <b>Discover</b>. <br/>
-                                    <span className="text-blue-500 font-bold block mt-2">WICHTIG: Drücken Sie 2-3 mal auf Discover, falls die Leuchte nicht sofort erscheint!</span>
-                                </p>
-                            </div>
-                            <div className="step-line">
-                                <h4 className="text-white font-black text-xs uppercase mb-3 flex items-center gap-2"><Settings2 size={16} className="text-blue-500"/> 3. Netzwerk-Wechsel (Edit)</h4>
-                                <p className="text-slate-400 text-xs leading-relaxed">
-                                    Wenn die Leuchte bereits im Plan ist, klicken Sie auf <b>Cancel</b>. Machen Sie einen Doppelklick (oder Rechtsklick -> Edit) auf die Leuchte im Plan.
-                                    Unter <b>Current Network</b> klicken Sie auf das <b>Plus-Symbol (+)</b> und wählen das Netzwerk aus, in dem die Leuchte gefunden wurde. Bestätigen Sie mit <b>OK</b>.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="space-y-8">
-                            <div className="step-line">
-                                <h4 className="text-white font-black text-xs uppercase mb-3 flex items-center gap-2"><RefreshCw size={16} className="text-blue-500"/> 4. Synchronisation (Sync Map)</h4>
-                                <p className="text-slate-400 text-xs leading-relaxed">
-                                    Klicken Sie oben im Menü auf <b>Sync Map</b>. Wählen Sie <b>"User USB Wireless Adapter Only"</b> und klicken Sie auf <b>Next</b>.
-                                </p>
-                            </div>
-                            <div className="step-line">
-                                <h4 className="text-white font-black text-xs uppercase mb-3 flex items-center gap-2"><CheckSquare size={16} className="text-emerald-500"/> 5. Bestätigung</h4>
-                                <p className="text-slate-400 text-xs leading-relaxed">
-                                    Sollte das Fenster <b>"Allow Wireless Coordination"</b> erscheinen, klicken Sie auf <b>JA (YES)</b>. Warten Sie, bis der Prozess mit <b>Finish</b> endet.
-                                    Bei Fehlern klicken Sie auf <b>Retry</b>.
-                                </p>
-                            </div>
-                            <div className="bg-blue-600/5 border border-blue-600/20 p-6 rounded-xl space-y-3">
-                                <div className="flex items-center gap-2 text-[10px] font-black text-blue-400 uppercase tracking-widest">
-                                    <AlertTriangle size={14}/> Support-Hinweis:
+        const HelpModal = ({ onClose }) => {
+            const [activeTab, setActiveTab] = useState('add');
+            return (
+                <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/95 backdrop-blur-md p-4">
+                    <div className="glass-card w-full max-w-6xl max-h-[92vh] overflow-hidden flex flex-col">
+                        <div className="p-10 border-b border-white/5 flex justify-between items-center bg-black/30">
+                            <div className="flex items-center gap-6">
+                                <HelpCircle className="text-blue-500" size={32} />
+                                <div>
+                                    <h2 className="text-2xl font-black text-white uppercase tracking-[0.2em]">Commissioner Leitfaden</h2>
+                                    <p className="text-blue-400 text-[10px] font-black uppercase tracking-[0.3em] mt-1">Maintenance Environment v3.5</p>
                                 </div>
-                                <p className="text-slate-500 text-[10px] italic leading-relaxed">
-                                    Sollte die Leuchte trotz mehrfachen Discover-Versuchen nicht erreichbar sein, prüfen Sie die Spannungsversorgung oder kontaktieren Sie unseren Support für eine tiefere Diagnose.
-                                </p>
                             </div>
+                            <button onClick={onClose} className="p-3 hover:bg-white/5 rounded-full transition-colors"><X size={32} className="text-slate-600 hover:text-white"/></button>
+                        </div>
+                        <div className="px-10 py-4 bg-black/20 flex gap-10 border-b border-white/5">
+                            <button onClick={() => setActiveTab('add')} className={`py-4 text-[11px] font-black uppercase tracking-widest ${activeTab === 'add' ? 'text-blue-400 border-b-2 border-blue-500' : 'text-slate-500'}`}>Leuchten finden & hinzufügen</button>
+                            <button onClick={() => setActiveTab('reset')} className={`py-4 text-[11px] font-black uppercase tracking-widest ${activeTab === 'reset' ? 'text-blue-400 border-b-2 border-blue-500' : 'text-slate-500'}`}>Leuchten Reset (USB/Wireless)</button>
+                        </div>
+                        <div className="p-14 overflow-y-auto flex-1 help-scroll">
+                            {activeTab === 'add' ? (
+                                <div className="grid lg:grid-cols-2 gap-20">
+                                    <div className="space-y-10">
+                                        <div className="step-path">
+                                            <h4 className="text-white font-black text-xs uppercase mb-4">1. Add Fixtures (Discovery)</h4>
+                                            <p className="text-slate-400 text-xs">Wählen Sie "Add Fixtures" -> "Discovering them using a Wireless Adapter" (NICHT USB Adapter!) -> Next.</p>
+                                        </div>
+                                        <div className="step-path">
+                                            <h4 className="text-white font-black text-xs uppercase mb-4">2. Netzwerk-Scan</h4>
+                                            <p className="text-slate-400 text-xs">Netzwerk wählen -> Discover. Tipp: Drücken Sie 2-3 mal auf Discover! Falls nichts kommt, "Scan for Network" nutzen.</p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-10">
+                                        <div className="step-path">
+                                            <h4 className="text-white font-black text-xs uppercase mb-4">3. Synchronisation (Sync)</h4>
+                                            <p className="text-slate-400 text-xs">Sync Map Button -> "Use Wireless Adapter" ist EXKLUSIV für die Synchronisation. Bei "Allow Wireless Coordination" Fenster unbedingt JA klicken.</p>
+                                        </div>
+                                        <div className="bg-slate-900/40 p-8 rounded-2xl border border-white/5 flex items-center gap-6">
+                                            <PhoneCall size={32} className="text-blue-500"/>
+                                            <p className="text-slate-500 text-[10px] italic">Leuchte nicht gefunden? Rufen Sie unseren Support an.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="grid lg:grid-cols-2 gap-20">
+                                    <div className="space-y-10">
+                                        <div className="step-path">
+                                            <h4 className="text-white font-black text-xs uppercase mb-4">1. USB Verbindung</h4>
+                                            <p className="text-slate-400 text-xs">USB-Kabel (TTL oder Micro) anschließen. Anschluss unter Sensor-Cover oder seitlich an der Gummilippe.</p>
+                                        </div>
+                                        <div className="step-path">
+                                            <h4 className="text-white font-black text-xs uppercase mb-4">2. Reset Item</h4>
+                                            <p className="text-slate-400 text-xs">Rechtsklick auf Leuchte -> Advanced -> Reset Item. Wählen Sie "Reset to Factory Default Network".</p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-10">
+                                        <div className="step-path">
+                                            <h4 className="text-white font-black text-xs uppercase mb-4">3. Ausführung</h4>
+                                            <p className="text-slate-400 text-xs">Auf "Reset via USB" klicken. Die Leuchte befindet sich danach im Factory Default Network.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
-            </div>
-        );
+            );
+        };
 
         const LoginModal = ({ onLogin, onClose }) => {
-            const [user, setUser] = useState('');
-            const [pass, setPass] = useState('');
-            const [err, setErr] = useState(false);
-
-            const handleSubmit = (e) => {
-                e.preventDefault();
-                if (user === 'Patrick Hartmann' && pass === '1234') { onLogin(); } 
-                else { setErr(true); }
-            };
-
+            const [user, setUser] = useState(''); const [pass, setPass] = useState(''); const [err, setErr] = useState(false);
+            const handleSubmit = (e) => { e.preventDefault(); if (user === 'Patrick Hartmann' && pass === '1234') { onLogin(); } else { setErr(true); } };
             return (
                 <div className="fixed inset-0 z-[7000] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4">
-                    <div className="glass-card w-full max-w-md p-10 border-t-2 border-blue-500/50">
-                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white"><X size={20}/></button>
+                    <div className="glass-card w-full max-w-md p-10">
+                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500"><X size={24}/></button>
                         <h2 className="text-xl font-black text-white uppercase tracking-[0.3em] text-center mb-10">Admin Login</h2>
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            <div>
-                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Nutzer</label>
-                                <input type="text" value={user} onChange={e => setUser(e.target.value)} className="w-full bg-black/40 border border-slate-800 rounded-xl px-4 py-3.5 text-white outline-none focus:border-blue-500" placeholder="Username" />
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Passwort</label>
-                                <input type="password" value={pass} onChange={e => setPass(e.target.value)} className="w-full bg-black/40 border border-slate-800 rounded-xl px-4 py-3.5 text-white outline-none focus:border-blue-500" placeholder="••••" />
-                            </div>
-                            {err && <p className="text-red-500 text-[10px] font-black uppercase text-center tracking-widest">Fehlgeschlagen</p>}
-                            <button type="submit" className="w-full led-button py-4 rounded-xl font-black text-[11px] text-white uppercase tracking-widest">Bestätigen</button>
+                        <form onSubmit={handleSubmit} className="space-y-8">
+                            <input type="text" value={user} onChange={e => setUser(e.target.value)} className="w-full bg-black/40 border border-slate-800 rounded-xl px-4 py-3.5 text-white outline-none focus:border-blue-500" placeholder="Username" />
+                            <input type="password" value={pass} onChange={e => setPass(e.target.value)} className="w-full bg-black/40 border border-slate-800 rounded-xl px-4 py-3.5 text-white outline-none focus:border-blue-500" placeholder="••••" />
+                            {err && <p className="text-red-500 text-xs text-center">Zugriff verweigert</p>}
+                            <button type="submit" className="w-full led-button py-5 rounded-xl font-black text-white uppercase tracking-widest">Einloggen</button>
                         </form>
                     </div>
                 </div>
@@ -319,7 +267,13 @@
                 let match;
                 while ((match = pmuRegex.exec(file.content)) !== null) {
                     const attrs = parseAttributes(match[1]);
-                    if (attrs.sn) snMap.set(attrs.sn, { value: attrs.sn, networkId: attrs.networkid, attributes: attrs });
+                    if (attrs.sn) {
+                        // Bei Dubletten nehmen wir den Eintrag, der am meisten Daten hat (Vermeidung von Leer-Einträgen)
+                        const existing = snMap.get(attrs.sn);
+                        if (!existing || Object.keys(attrs).length > Object.keys(existing.attributes).length) {
+                             snMap.set(attrs.sn, { value: attrs.sn, networkId: attrs.networkid, attributes: attrs });
+                        }
+                    }
                 }
                 setExtracted(Array.from(snMap.values()));
             }, [file]);
@@ -338,8 +292,6 @@
                             }
                             return tag;
                         });
-                        const globalRegex = new RegExp(`sn\\s*=\\s*"${job.oldSN}"`, 'g');
-                        res = res.replace(globalRegex, `sn="${job.newSN}"`);
                     });
                 } else {
                     dhJobs.forEach(job => {
@@ -365,230 +317,100 @@
 
             return (
                 <div className="min-h-screen flex flex-col relative overflow-hidden">
-                    <div className="led-spotlight top-[-200px] left-[-200px]"></div>
-                    <div className="led-spotlight bottom-[-200px] right-[-200px]"></div>
-
-                    <header className="cc-header sticky top-0 z-[1100] flex items-center justify-between px-16">
+                    <header className="cc-header sticky top-0 z-[1100] flex items-center justify-between px-20">
                         <div className="flex items-center gap-16">
-                            <a href="https://www.thorlux.de/" target="_blank" className="cc-logo-link bg-white px-10 py-4 rounded-xl shadow-2xl transition-transform hover:scale-105">
-                                <img src={thorluxLogo} alt="Thorlux" className="h-10 w-auto" />
-                            </a>
-                            <div className="h-10 w-[1px] bg-white/10"></div>
-                            <a href="https://www.schahlled-control-center.de/" target="_blank" className="cc-logo-link">
-                                <img src={ccLogo} alt="Control Center" className="h-8 w-auto" />
-                            </a>
+                            <img src={thorluxLogo} className="h-10 w-auto bg-white p-2 rounded" />
+                            <img src={ccLogo} className="h-8 w-auto" />
                         </div>
-                        
                         <div className="flex items-center gap-10">
-                            <button onClick={() => setShowHelp(true)} className="text-[10px] font-black text-blue-400 hover:text-white transition-colors uppercase tracking-[0.4em] flex items-center gap-2 group">
-                                <HelpCircle size={18} className="group-hover:scale-110 transition-transform"/> HILFE
-                            </button>
-                            <button 
-                                onClick={() => isAdmin ? setIsAdmin(false) : setShowLogin(true)}
-                                className={`px-8 py-3 rounded-xl text-[10px] font-black transition-all flex items-center gap-3 border uppercase tracking-[0.2em] ${isAdmin ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_25px_rgba(0,137,208,0.5)]' : 'bg-slate-900/50 text-blue-500 border-blue-900/60 hover:border-blue-500'}`}
-                            >
-                                {isAdmin ? <Unlock size={14}/> : <Lock size={14}/>} {isAdmin ? 'ADMIN MODUS' : 'ADMIN LOGIN'}
-                            </button>
+                            <button onClick={() => setShowHelp(true)} className="text-[10px] font-black text-blue-400 flex items-center gap-2 group tracking-widest uppercase"><HelpCircle size={20}/> HILFE</button>
+                            <button onClick={() => isAdmin ? setIsAdmin(false) : setShowLogin(true)} className={`px-10 py-3.5 rounded-xl text-[10px] font-black border uppercase tracking-widest ${isAdmin ? 'bg-blue-600 text-white' : 'text-blue-500 border-blue-900'}`}>{isAdmin ? 'ADMIN MODUS' : 'ADMIN LOGIN'}</button>
                         </div>
                     </header>
 
-                    <main className="flex-1 flex flex-col items-center p-14 z-10">
-                        <div className="w-full max-w-7xl space-y-24">
-                            
-                            <div className="text-center space-y-6">
-                                <h1 className="text-7xl font-light text-white uppercase tracking-[0.6em] ml-[0.6em]">STANDORTE</h1>
-                                <div className="w-32 h-1 bg-blue-600 mx-auto rounded-full led-status-dot shadow-[0_0_15px_var(--schahl-blue)]"></div>
+                    <main className="flex-1 flex flex-col items-center p-16 z-10">
+                        <div className="w-full max-w-7xl space-y-20">
+                            <div className="text-center">
+                                <h1 className="text-8xl font-light text-white uppercase tracking-[0.5em] ml-[0.5em]">STANDORTE</h1>
+                                <div className="w-40 h-1 bg-blue-600 mx-auto rounded-full led-status-dot mt-5"></div>
                             </div>
 
                             {!file ? (
-                                <div className="glass-card p-40 flex flex-col items-center border-dashed border-2 border-slate-800 hover:border-blue-500/50 transition-all cursor-pointer group max-w-3xl mx-auto relative overflow-hidden shadow-[0_0_120px_rgba(0,0,0,0.6)]">
-                                    <div className="absolute inset-0 bg-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                    <div className="w-24 h-24 bg-blue-600/10 rounded-full flex items-center justify-center mb-10 border border-blue-600/20 group-hover:scale-110 transition-transform shadow-inner">
-                                        <Upload className="w-12 h-12 text-blue-500" />
-                                    </div>
-                                    <h2 className="text-3xl font-black text-white uppercase tracking-[0.3em] text-center">Projektdatei (.MAP) laden</h2>
-                                    <p className="text-slate-500 text-[11px] mt-8 italic uppercase tracking-widest opacity-60">Hier klicken oder Datei hereinziehen</p>
+                                <div className="glass-card p-48 flex flex-col items-center border-dashed border-2 border-slate-800 hover:border-blue-500/50 cursor-pointer relative shadow-2xl">
+                                    <Upload className="w-16 h-16 text-blue-500 mb-10" />
+                                    <h2 className="text-3xl font-black text-white uppercase tracking-widest">Projektdatei (.MAP) laden</h2>
                                     <input type="file" accept=".map" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => {
-                                        const f = e.target.files[0];
-                                        if (f) { const r = new FileReader(); r.onload = (ev) => setFile({ name: f.name, content: ev.target.result }); r.readAsText(f); }
+                                        const f = e.target.files[0]; if (f) { const r = new FileReader(); r.onload = (ev) => setFile({ name: f.name, content: ev.target.result }); r.readAsText(f); }
                                     }} />
                                 </div>
                             ) : (
-                                <div className="grid lg:grid-cols-12 gap-16 animate-in fade-in slide-in-from-bottom-10 duration-700">
-                                    <div className="lg:col-span-12 flex justify-center">
-                                        <div className="bg-black/50 p-2.5 rounded-2xl border border-white/5 flex gap-3 shadow-2xl shadow-black/80">
-                                            <button onClick={() => {setMode('patch'); setIsDone(false);}} className={`px-20 py-6 rounded-xl text-[13px] font-black transition-all uppercase tracking-[0.4em] flex items-center gap-5 ${mode === 'patch' ? 'led-button text-white shadow-[0_0_30px_rgba(0,137,208,0.3)]' : 'text-slate-500 hover:text-white'}`}>
-                                                <HardDrive size={22}/> Austausch
-                                            </button>
-                                            <button onClick={() => {setMode('dh'); setIsDone(false);}} className={`px-20 py-6 rounded-xl text-[13px] font-black transition-all uppercase tracking-[0.4em] flex items-center gap-5 ${mode === 'dh' ? 'led-button text-white shadow-[0_0_30px_rgba(0,137,208,0.3)]' : 'text-slate-500 hover:text-white'}`}>
-                                                <Zap size={22}/> DH Transfer
-                                            </button>
-                                        </div>
+                                <div className="grid lg:grid-cols-12 gap-16">
+                                    <div className="lg:col-span-12 flex justify-center gap-5">
+                                        <button onClick={() => {setMode('patch'); setIsDone(false);}} className={`px-24 py-7 rounded-2xl font-black uppercase tracking-widest ${mode === 'patch' ? 'led-button text-white' : 'text-slate-500'}`}>Austausch</button>
+                                        <button onClick={() => {setMode('dh'); setIsDone(false);}} className={`px-24 py-7 rounded-2xl font-black uppercase tracking-widest ${mode === 'dh' ? 'led-button text-white' : 'text-slate-500'}`}>DH Transfer</button>
                                     </div>
 
-                                    <div className="lg:col-span-8 space-y-12">
-                                        <div className="glass-card p-12">
-                                            <div className="space-y-14">
-                                                <div className="flex flex-col gap-10">
-                                                    <div className="flex justify-between items-center border-b border-white/5 pb-8">
-                                                        <h3 className="text-white font-black text-base uppercase tracking-[0.4em] flex items-center gap-6">
-                                                            <div className="w-3 h-3 rounded-full bg-blue-500 led-status-dot shadow-[0_0_15px_var(--schahl-blue)]"></div>
-                                                            {mode === 'patch' ? 'Hardware Austausch' : 'DH Kalibrierungs-Sync'}
-                                                        </h3>
-                                                    </div>
+                                    <div className="lg:col-span-8 glass-card p-14 space-y-10">
+                                        <button onClick={() => mode === 'patch' 
+                                            ? setPatchJobs([...patchJobs, { id: Date.now(), oldSN: '', newSN: '', activeDropdown: false }])
+                                            : setDhJobs([...dhJobs, { id: Date.now(), srcSN: '', dstSN: '', activeDropdown: false }])
+                                        } className="w-full py-8 border-2 border-dashed border-blue-900 text-blue-400 font-black rounded-2xl uppercase">+ Position hinzufügen</button>
 
-                                                    <button 
-                                                        onClick={() => mode === 'patch' 
-                                                            ? setPatchJobs([...patchJobs, { id: Date.now(), oldSN: '', newSN: '', activeDropdown: false }])
-                                                            : setDhJobs([...dhJobs, { id: Date.now(), srcSN: '', dstSN: '', activeDropdown: false }])
-                                                        } 
-                                                        className="w-full py-8 border-2 border-dashed border-blue-900/30 rounded-2xl text-[12px] font-black text-blue-400 hover:border-blue-500 hover:bg-blue-600/5 transition-all flex items-center justify-center gap-6 uppercase tracking-[0.4em] group shadow-inner"
-                                                    >
-                                                        <Plus size={24} className="group-hover:scale-125 transition-transform text-blue-500"/> Eintrag für weitere Position hinzufügen
-                                                    </button>
-
-                                                    {isAdmin && mode === 'dh' && (
-                                                        <div className="bg-blue-900/10 border border-blue-500/20 p-10 rounded-2xl space-y-6 animate-in fade-in slide-in-from-top-6">
-                                                            <div className="flex items-center gap-4 text-[12px] font-black text-blue-400 uppercase tracking-widest">
-                                                                <ShieldCheck size={20}/> Synchronisierte Experten-Attribute:
-                                                            </div>
-                                                            <div className="flex flex-wrap gap-3">
-                                                                {CALIBRATION_KEYS.map(k => <span key={k} className="key-badge">{k}</span>)}
-                                                            </div>
-                                                        </div>
+                                        {(mode === 'patch' ? patchJobs : dhJobs).map((job, idx) => (
+                                            <div key={job.id} className={`bg-black/50 p-10 rounded-3xl border border-white/5 grid grid-cols-12 gap-12 relative ${job.activeDropdown ? 'z-[5000]' : 'z-[1]'}`}>
+                                                <div className="col-span-5">
+                                                    <SearchableSelect label="Quelle" options={extracted} value={mode === 'patch' ? job.oldSN : job.srcSN} onChange={v => {
+                                                        const updater = mode === 'patch' ? setPatchJobs : setDhJobs;
+                                                        const jobs = mode === 'patch' ? patchJobs : dhJobs;
+                                                        updater(jobs.map(j => j.id === job.id ? (mode === 'patch' ? {...j, oldSN: v} : {...j, srcSN: v}) : j));
+                                                    }} onOpenStateChange={isOpen => {
+                                                        const updater = mode === 'patch' ? setPatchJobs : setDhJobs;
+                                                        const jobs = mode === 'patch' ? patchJobs : dhJobs;
+                                                        updater(jobs.map(j => j.id === job.id ? {...j, activeDropdown: isOpen} : j));
+                                                    }} />
+                                                </div>
+                                                <div className="col-span-1 flex justify-center pt-14 text-slate-700"><ArrowRight size={32}/></div>
+                                                <div className="col-span-5">
+                                                    {mode === 'patch' ? (
+                                                        <input type="text" value={job.newSN} onChange={e => setPatchJobs(patchJobs.map(j => j.id === job.id ? {...j, newSN: e.target.value.toUpperCase()} : j))} className="w-full bg-black/60 border border-slate-800 rounded-2xl px-6 py-4.5 text-white font-mono mt-6" placeholder="Neue SN..." />
+                                                    ) : (
+                                                        <SearchableSelect label="Ziel" options={extracted} value={job.dstSN} onChange={v => setDhJobs(dhJobs.map(j => j.id === job.id ? {...j, dstSN: v} : j))} onOpenStateChange={isOpen => setDhJobs(dhJobs.map(j => j.id === job.id ? {...j, activeDropdown: isOpen} : j))} />
                                                     )}
                                                 </div>
-                                                
-                                                <div className="space-y-6">
-                                                    {(mode === 'patch' ? patchJobs : dhJobs).map((job, idx) => (
-                                                        <div key={job.id} 
-                                                            className={`bg-black/50 p-8 rounded-2xl border border-white/5 grid grid-cols-12 gap-10 relative transition-all duration-300 ${job.activeDropdown ? 'z-[5000] border-blue-500/50 shadow-[0_0_50px_rgba(0,137,208,0.2)]' : 'z-[1]'}`}
-                                                            style={{zIndex: job.activeDropdown ? 5000 : (100 - idx)}}
-                                                        >
-                                                            <div className="col-span-5">
-                                                                <SearchableSelect 
-                                                                    label={mode === 'patch' ? "Alt (Leuchte im Plan)" : "Quelle (Kalibrierung)"} 
-                                                                    options={extracted} 
-                                                                    value={mode === 'patch' ? job.oldSN : job.srcSN} 
-                                                                    onOpenStateChange={(isOpen) => {
-                                                                        const updater = mode === 'patch' ? setPatchJobs : setDhJobs;
-                                                                        const jobs = mode === 'patch' ? patchJobs : dhJobs;
-                                                                        updater(jobs.map(j => j.id === job.id ? {...j, activeDropdown: isOpen} : j));
-                                                                    }}
-                                                                    onChange={v => {
-                                                                        const updater = mode === 'patch' ? setPatchJobs : setDhJobs;
-                                                                        const jobs = mode === 'patch' ? patchJobs : dhJobs;
-                                                                        updater(jobs.map(j => j.id === job.id ? (mode === 'patch' ? {...j, oldSN: v} : {...j, srcSN: v}) : j));
-                                                                    }} 
-                                                                />
-                                                            </div>
-                                                            <div className="col-span-1 flex justify-center pt-12 text-slate-800"><ArrowRight size={32}/></div>
-                                                            <div className="col-span-5">
-                                                                {mode === 'patch' ? (
-                                                                    <>
-                                                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block mb-2">Neue Hardware SN</label>
-                                                                        <input type="text" value={job.newSN} onChange={e => setPatchJobs(patchJobs.map(j => j.id === job.id ? {...j, newSN: e.target.value.toUpperCase()} : j))} className="w-full bg-black/60 border border-slate-800 rounded-xl px-5 py-4 font-mono text-xs text-white outline-none focus:border-blue-500 shadow-inner transition-all" placeholder="Eingabe..." />
-                                                                    </>
-                                                                ) : (
-                                                                    <SearchableSelect 
-                                                                        label="Ziel (Empfänger-Leuchte)" 
-                                                                        options={extracted} 
-                                                                        value={job.dstSN} 
-                                                                        onOpenStateChange={(isOpen) => {
-                                                                            setDhJobs(dhJobs.map(j => j.id === job.id ? {...j, activeDropdown: isOpen} : j));
-                                                                        }}
-                                                                        onChange={v => setDhJobs(dhJobs.map(j => j.id === job.id ? {...j, dstSN: v} : j))} 
-                                                                    />
-                                                                )}
-                                                            </div>
-                                                            <div className="col-span-1 flex justify-end pt-11">
-                                                                {(mode === 'patch' ? patchJobs.length : dhJobs.length) > 1 && (
-                                                                    <button onClick={() => {
-                                                                        const updater = mode === 'patch' ? setPatchJobs : setDhJobs;
-                                                                        const jobs = mode === 'patch' ? patchJobs : dhJobs;
-                                                                        updater(jobs.filter(j => j.id !== job.id));
-                                                                    }} className="p-3.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-600 hover:text-red-500 transition-colors shadow-lg"><Trash2 size={20}/></button>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                                <div className="col-span-1 pt-12"><button onClick={() => (mode === 'patch' ? setPatchJobs : setDhJobs)( (mode === 'patch' ? patchJobs : dhJobs).filter(j => j.id !== job.id))} className="text-red-500"><Trash2/></button></div>
                                             </div>
-                                        </div>
+                                        ))}
                                     </div>
 
-                                    <div className="lg:col-span-4 space-y-12">
-                                        <div className="glass-card p-12 text-center flex flex-col justify-between min-h-[600px] border-t-4 border-t-blue-500 relative overflow-hidden">
-                                            <div className="space-y-14 relative z-10">
-                                                <div className="w-28 h-28 mx-auto bg-black/40 rounded-full flex items-center justify-center border border-white/5 shadow-inner relative">
-                                                    <div className="absolute inset-0 bg-blue-500/5 rounded-full led-status-dot"></div>
-                                                    {isDone ? <CheckCircle2 size={60} className="text-emerald-500 relative z-10" /> : <Settings size={60} className="text-blue-500 animate-spin-slow relative z-10" />}
-                                                </div>
-                                                <div className="space-y-5">
-                                                    <h4 className="text-3xl font-black text-white uppercase tracking-[0.2em]">{isDone ? 'Erfolgreich' : 'Ready'}</h4>
-                                                    <p className="text-[11px] text-slate-500 font-mono italic opacity-60 truncate px-6 border-y border-white/5 py-5 tracking-widest">{file.name}</p>
-                                                </div>
+                                    <div className="lg:col-span-4 flex flex-col gap-10">
+                                        <div className="glass-card p-14 text-center space-y-10 min-h-[500px] flex flex-col justify-between">
+                                            <div className="space-y-6">
+                                                <Settings size={64} className="text-blue-500 mx-auto" />
+                                                <h4 className="text-2xl font-black text-white uppercase tracking-widest">{isDone ? 'Abgeschlossen' : 'Bereit'}</h4>
+                                                <p className="text-xs text-slate-500 italic truncate">{file.name}</p>
                                             </div>
-
-                                            <div className="space-y-6 pt-12 relative z-10">
-                                                {!isDone ? (
-                                                    <button 
-                                                        onClick={run} 
-                                                        disabled={mode === 'patch' ? patchJobs.some(j => !j.newSN) : dhJobs.some(j => !j.dstSN)} 
-                                                        className="w-full py-8 rounded-2xl led-button text-[14px] font-black tracking-[0.5em] text-white uppercase disabled:opacity-20 disabled:shadow-none shadow-xl"
-                                                    >
-                                                        AUSFÜHREN
-                                                    </button>
-                                                ) : (
-                                                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-10 duration-700">
-                                                        <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-2xl text-[11px] text-emerald-400 font-bold leading-relaxed italic text-left">
-                                                            <div className="flex items-center gap-3 mb-3 text-emerald-400 uppercase tracking-widest text-[10px]">
-                                                                <CheckCircle2 size={16}/> Patch erfolgreich
-                                                            </div>
-                                                            WICHTIG: Nach dem Download muss die Map im Commissioner erneut synchronisiert werden, bevor sie auf den Server hochgeladen wird.
-                                                        </div>
-                                                        <a 
-                                                            href={dlUrl} 
-                                                            download={file.name.replace('.map', '_patched.map')} 
-                                                            className="flex items-center justify-center w-full py-9 bg-white text-black font-black text-sm rounded-2xl uppercase tracking-[0.5em] hover:shadow-[0_0_70px_rgba(255,255,255,0.5)] transition-all transform hover:scale-[1.02]"
-                                                        >
-                                                            <Download className="mr-4" size={26} /> DATEI DOWNLOAD
-                                                        </a>
+                                            {!isDone ? (
+                                                <button onClick={run} className="w-full py-10 rounded-3xl led-button text-white font-black uppercase tracking-widest shadow-2xl">AUSFÜHREN</button>
+                                            ) : (
+                                                <div className="space-y-6">
+                                                    <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-2xl text-[10px] text-emerald-400 font-bold italic text-left">
+                                                        <Info className="mb-2"/> WICHTIG: Nach dem Download im Commissioner synchronisieren und erst danach auf den Server laden.
                                                     </div>
-                                                )}
-                                                
-                                                <button onClick={() => {setFile(null); setIsDone(false); setDlUrl(null);}} className="text-slate-600 text-[11px] font-black uppercase tracking-[0.6em] hover:text-red-500 transition-colors mt-10">Beenden / Zurück</button>
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="glass-card p-12 border-l-4 border-l-blue-500 relative overflow-hidden group">
-                                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 rounded-full translate-x-16 -translate-y-16 group-hover:bg-blue-600/10 transition-colors"></div>
-                                            <div className="flex items-center gap-5 mb-6">
-                                                <div className="w-3.5 h-3.5 rounded-full bg-emerald-500 led-status-dot shadow-[0_0_20px_rgba(16,185,129,0.9)]"></div>
-                                                <h5 className="text-[12px] font-black uppercase tracking-widest text-white">System-Status: Aktiv</h5>
-                                            </div>
-                                            <p className="text-[12px] text-slate-500 leading-relaxed italic relative z-10">
-                                                Die Maintenance Console validiert alle XML-Strukturen automatisch. Nutzen Sie die <b>HILFE</b> oben rechts für den Commissioner Workflow.
-                                            </p>
+                                                    <a href={dlUrl} download={file.name.replace('.map', '_patched.map')} className="flex items-center justify-center w-full py-10 bg-white text-black font-black rounded-3xl uppercase shadow-2xl"><Download className="mr-3"/> DOWNLOAD</a>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
                             )}
                         </div>
                     </main>
-
                     {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
                     {showLogin && <LoginModal onClose={() => setShowLogin(false)} onLogin={() => { setIsAdmin(true); setShowLogin(false); }} />}
-                    
-                    <footer className="text-center py-20 opacity-30 border-t border-white/5">
-                        <p className="text-[11px] font-black tracking-[2em] text-slate-500 uppercase ml-[2em]">SchahlLED GmbH • Professional Maintenance Console</p>
-                    </footer>
                 </div>
             );
         };
-
-        const root = createRoot(document.getElementById('root'));
-        root.render(<App />);
+        const root = createRoot(document.getElementById('root')); root.render(<App />);
     </script>
 </body>
 </html>
