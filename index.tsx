@@ -430,33 +430,157 @@ const HelpView = ({ onBack, isAdminMode }) => {
 
 const AdminView = ({ onBack, isAuthenticated, onAuthenticated }) => {
   const [pattern, setPattern] = useState([]);
+  const [energyData, setEnergyData] = useState(null);
+  const [activeMetric, setActiveMetric] = useState('');
+  const [timeRange, setTimeRange] = useState('YEAR');
+  const [energyLoading, setEnergyLoading] = useState(false);
+
   const handleDot = i => {
     if (pattern.includes(i)) return;
-    const next = [...pattern, i]; setPattern(next);
-    if (next.length === 5) { if (next.join(',') === '0,1,2,5,8') onAuthenticated(); else setTimeout(() => setPattern([]), 500); }
+    const next = [...pattern, i];
+    setPattern(next);
+    if (next.length === 5) {
+      if (next.join(',') === '0,1,2,5,8') onAuthenticated();
+      else setTimeout(() => setPattern([]), 500);
+    }
   };
+
+  const totalValue = useMemo(() => {
+    if (!energyData || !activeMetric) return '0';
+    const sum = energyData.rows.reduce((acc, row) => acc + (Number(row[activeMetric]) || 0), 0);
+    return sum.toLocaleString('de-DE', { maximumFractionDigits: 1 });
+  }, [energyData, activeMetric]);
+
+  const unitLabel = useMemo(() => {
+    const m = activeMetric.toLowerCase();
+    if (m.includes('kwh')) return 'kWh';
+    if (m.includes('%')) return '%';
+    if (m.includes('eur') || m.includes('cost')) return 'EUR';
+    if (m.includes('kg') || m.includes('co2')) return 'kg';
+    return '';
+  }, [activeMetric]);
+
+  const handleEnergyUpload = async (file) => {
+    setEnergyLoading(true);
+    try {
+      const text = await file.text();
+      const delim = text.includes(';') ? ';' : ',';
+      const rawData = text.split(/\r?\n/).map(l => l.split(delim).map(v => v.trim().replace(/^"|"$/g, ''))).filter(r => r.some(c => c !== ''));
+      if (!rawData.length) return;
+      const firstH = String(rawData[0][0]).toLowerCase();
+      let headers, rows;
+      if (firstH === 'metric' || firstH === 'label' || firstH === '') {
+        const dateHeaders = rawData[0].slice(2);
+        const metricRows = rawData.slice(1).filter(r => r[0]);
+        rows = dateHeaders.map((date, ci) => {
+          const pt = { Date: date };
+          metricRows.forEach(r => { let v = r[ci + 2]; if (typeof v === 'string') v = v.replace(',', '.'); pt[String(r[0])] = !isNaN(Number(v)) ? Number(v) : v; });
+          return pt;
+        });
+        headers = ['Date', ...metricRows.map(r => String(r[0]))];
+      } else {
+        headers = rawData[0].map(h => String(h).trim());
+        rows = rawData.slice(1).map(r => { const o = {}; headers.forEach((h, i) => { let v = r[i]; if (typeof v === 'string') v = v.replace(',', '.'); o[h] = !isNaN(Number(v)) ? Number(v) : v; }); return o; });
+      }
+      setEnergyData({ headers, rows });
+      const first = headers.find(h => h !== 'Date');
+      if (first) setActiveMetric(first);
+    } catch(e) { alert('Fehler beim Laden der Datei.'); }
+    finally { setEnergyLoading(false); }
+  };
+
   if (!isAuthenticated) return (
     <Layout onNavigateConfig={onBack} currentView="admin" isAdminMode={false} onNavigateHelp={() => {}} onNavigateAdmin={() => {}}>
-      <div className="glass-card p-14 lg:p-20 text-center space-y-12 max-w-xl mx-auto"><Lock className="mx-auto text-blue-400 animate-pulse" size={60} /><h2 className="text-2xl font-black uppercase tracking-widest text-white">ADMIN AUTH</h2>
+      <div className="glass-card p-14 lg:p-20 text-center space-y-12 max-w-xl mx-auto">
+        <Lock className="mx-auto text-blue-400 animate-pulse" size={60} />
+        <h2 className="text-2xl font-black uppercase tracking-widest text-white">ADMIN AUTH</h2>
         <div className="grid grid-cols-3 gap-6 lg:gap-8 mx-auto w-fit p-10 bg-black/40 rounded-[2.5rem] border border-white/10 shadow-inner">
-          {[0,1,2,3,4,5,6,7,8].map(i => <button key={i} onMouseDown={() => handleDot(i)} onMouseEnter={e => e.buttons === 1 && handleDot(i)} className={`w-10 h-10 rounded-full border-2 transition-all duration-300 ${pattern.includes(i) ? 'bg-blue-500 border-white shadow-[0_0_20px_rgba(0,178,255,1)]' : 'bg-white/5 border-white/20'}`} />)}
+          {[0,1,2,3,4,5,6,7,8].map(i => (
+            <button key={i} onMouseDown={() => handleDot(i)} onMouseEnter={e => e.buttons === 1 && handleDot(i)}
+              className={`w-10 h-10 rounded-full border-2 transition-all duration-300 ${pattern.includes(i) ? 'bg-blue-500 border-white shadow-[0_0_20px_rgba(0,178,255,1)]' : 'bg-white/5 border-white/20'}`} />
+          ))}
         </div>
         <button onClick={onBack} className="text-slate-600 uppercase font-black text-[10px] tracking-widest hover:text-white transition-colors">ABBRECHEN</button>
       </div>
     </Layout>
   );
+
   return (
     <Layout isAdminMode={true} currentView="admin" onNavigateConfig={onBack} onNavigateHelp={() => {}} onNavigateAdmin={() => {}}>
-      <div className="glass-card p-10 lg:p-20 text-center space-y-10 min-h-[50vh] flex flex-col justify-center max-w-6xl mx-auto"><h2 className="text-3xl lg:text-5xl font-light tracking-widest text-white uppercase">Serviceprotokolle</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-10 lg:py-20">
-          {[1,2,3].map(i => (
-            <div key={i} className="bg-black/40 p-12 rounded-[2.5rem] border border-white/5 text-slate-500 flex flex-col items-center gap-6 group hover:border-blue-500/20 transition-all">
-              <FileText size={48} className="opacity-20 group-hover:opacity-40 transition-opacity"/>
-              <p className="font-black text-[10px] uppercase tracking-widest opacity-20">In Vorbereitung</p>
-            </div>
-          ))}
+      <div className="w-full max-w-7xl space-y-8 animate-in fade-in slide-in-from-bottom-10 duration-500">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
+          <h2 className="text-3xl lg:text-5xl font-light tracking-[0.4em] text-white uppercase filter drop-shadow-[0_0_20px_rgba(0,178,255,0.4)]">Energie Dashboard</h2>
+          <a href="https://pahartmann1990.github.io/schahlled-csv/" target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-3 text-blue-400 hover:text-white border border-blue-500/30 hover:border-blue-400 px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all hover:bg-blue-500/10">
+            ↗ Im eigenen Fenster öffnen
+          </a>
         </div>
-        <button onClick={onBack} className="w-fit mx-auto px-10 py-6 rounded-2xl bg-blue-500 text-white font-black text-xs tracking-widest uppercase hover:bg-blue-400 transition-colors">ZURÜCK</button>
+        {!energyData ? (
+          <div className="glass-card p-12 lg:p-20 flex flex-col items-center text-center space-y-8 max-w-lg mx-auto">
+            <div className="bg-emerald-500/10 w-24 h-24 rounded-full flex items-center justify-center border border-emerald-500/30">
+              <Upload className="text-emerald-400 w-12 h-12" />
+            </div>
+            <h3 className="text-2xl font-black text-white uppercase tracking-tight">Energy Control</h3>
+            <p className="text-slate-400 leading-relaxed text-sm">Wählen Sie Ihre CSV-Datei aus,<br/>um die Messdaten zu visualisieren.</p>
+            <label className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-5 px-10 rounded-2xl cursor-pointer transition-all flex items-center gap-3 shadow-lg active:scale-95 w-full justify-center text-sm tracking-wider uppercase">
+              {energyLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Sun className="w-5 h-5" />}
+              {energyLoading ? 'Wird analysiert...' : 'CSV Datei hochladen'}
+              <input type="file" className="hidden" onChange={e => e.target.files?.[0] && handleEnergyUpload(e.target.files[0])} accept=".csv" />
+            </label>
+            <div className="bg-white/5 border border-white/10 p-4 rounded-xl text-left text-[11px] text-slate-500 w-full">
+              <p className="font-bold text-slate-400 uppercase mb-1 tracking-wider text-[10px]">Format:</p>
+              <p>Erste Zeile: Spaltenköpfe (z.B. Date, kWh, CO2). Trennzeichen: Komma oder Semikolon.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-[#78b800] w-full rounded-[40px] shadow-2xl overflow-hidden flex flex-col p-8 lg:p-10">
+            <div className="flex flex-col items-center text-white mb-6">
+              <div className="flex items-center gap-4 mt-2">
+                <div className="p-2 bg-white/10 rounded-full"><Sun className="w-8 h-8 text-yellow-300" /></div>
+                <h3 className="text-3xl font-light tracking-[0.25em] uppercase">Energy Usage</h3>
+              </div>
+              <p className="text-white/50 text-xs mt-3 tracking-widest uppercase font-bold">{energyData.rows.length} Datenpunkte · {energyData.headers.length - 1} Metriken</p>
+            </div>
+            <div className="flex flex-col lg:flex-row gap-6 mb-6">
+              <div className="w-full lg:w-[38%] bg-white/10 backdrop-blur-sm rounded-[30px] p-8 flex flex-col justify-between items-center border border-white/20 min-h-[200px]">
+                <p className="text-white/70 text-xs font-bold uppercase tracking-widest text-center truncate w-full">{activeMetric}</p>
+                <div className="flex flex-col items-center">
+                  <span className="text-[70px] lg:text-[90px] font-light text-white leading-none tracking-tighter">{totalValue}</span>
+                  <span className="text-2xl font-medium text-white/60 mt-2">{unitLabel}</span>
+                </div>
+                <div className="h-1 w-20 bg-emerald-400 rounded-full" />
+              </div>
+              <div className="w-full lg:w-[62%] bg-white/10 backdrop-blur-sm rounded-[30px] p-6 border border-white/20 flex flex-col items-center justify-center min-h-[200px] gap-4">
+                <p className="text-white/60 text-sm text-center font-bold uppercase tracking-widest">📊 Vollständiges Diagramm</p>
+                <a href="https://pahartmann1990.github.io/schahlled-csv/" target="_blank" rel="noopener noreferrer"
+                  className="bg-white/20 hover:bg-white/30 text-white font-black py-3 px-8 rounded-2xl text-xs tracking-widest uppercase transition-all">
+                  Im eigenen Fenster öffnen ↗
+                </a>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-white/10">
+              <div className="flex gap-2 bg-white/10 p-1.5 rounded-2xl">
+                {['WEEK', 'MONTH', 'YEAR'].map(r => (
+                  <button key={r} onClick={() => setTimeRange(r)}
+                    className={`text-[10px] font-bold py-2 px-5 rounded-xl uppercase tracking-wider transition-all ${timeRange === r ? 'bg-white text-emerald-700 shadow-lg' : 'text-white hover:bg-white/10'}`}>{r}</button>
+                ))}
+              </div>
+              <div className="flex flex-wrap justify-end gap-2 max-w-[65%]">
+                {energyData.headers.filter(h => h !== 'Date').map(m => (
+                  <button key={m} onClick={() => setActiveMetric(m)}
+                    className={`text-[10px] font-bold py-2 px-4 rounded-lg uppercase tracking-wider transition-all border ${activeMetric === m ? 'bg-white text-emerald-700 border-white shadow-md' : 'bg-transparent text-white border-white/20 hover:bg-white/10'}`}>{m}</button>
+                ))}
+                <button onClick={() => { if(window.confirm('Dashboard zurücksetzen?')) setEnergyData(null); }}
+                  className="text-[10px] font-bold py-2 px-4 rounded-lg uppercase tracking-wider bg-red-500/20 text-red-200 border border-red-500/30 hover:bg-red-500/40 transition-all flex items-center gap-2">
+                  <Trash2 size={11} /> Reset
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        <div className="flex justify-center pt-4">
+          <button onClick={onBack} className="led-button px-16 py-6 rounded-2xl text-xs tracking-[0.5em] uppercase transition-all">ZURÜCK ZUM CONFIGURATOR</button>
+        </div>
       </div>
     </Layout>
   );
