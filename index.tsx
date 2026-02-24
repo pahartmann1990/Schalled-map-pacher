@@ -12,6 +12,7 @@ interface SerialMatch {
   value: string;
   count: number;
   isPmu: boolean;
+  isGateway: boolean;
   networkId?: string;
   attributes: Record<string, string>;
 }
@@ -237,17 +238,19 @@ const MainView = ({ onNavigateHelp, onNavigateAdmin, isAdminMode, onNavigateConf
   const [activeTab, setActiveTab] = useState('patch');
   const [serialOptions, setSerialOptions] = useState([]);
   const [patchJobs, setPatchJobs] = useState([{ id: Date.now(), oldSN: '', newSN: '' }]);
+  const [gatewayJobs, setGatewayJobs] = useState([{ id: Date.now(), oldSN: '', newSN: '' }]);
   const [dhJobs, setDhJobs] = useState([{ id: Date.now(), sourceSN: '', targetSN: '' }]);
   const [isDone, setIsDone] = useState(false);
   const [dlUrl, setDlUrl] = useState(null);
 
   const handleFileLoaded = (name, content) => {
     setFile({ name, content });
-    const pmuRegex = /<pmu\s+([^>]+)>/gi;
+    const deviceRegex = /<(pmu|gateway)\s+([^>]+)>/gi;
     const matches = []; 
     let match;
-    while ((match = pmuRegex.exec(content)) !== null) {
-      const attrsStr = match[1];
+    while ((match = deviceRegex.exec(content)) !== null) {
+      const type = match[1].toLowerCase();
+      const attrsStr = match[2];
       const snMatch = attrsStr.match(/sn="([^"]+)"/i);
       const netMatch = attrsStr.match(/network="([^"]+)"/i);
       if (snMatch) {
@@ -261,7 +264,14 @@ const MainView = ({ onNavigateHelp, onNavigateAdmin, isAdminMode, onNavigateConf
             const [key, val] = pair.split('=');
             attrs[key] = val.replace(/"/g, '');
           });
-          matches.push({ value: sn, count: 1, isPmu: true, networkId: netMatch ? netMatch[1] : undefined, attributes: attrs });
+          matches.push({ 
+            value: sn, 
+            count: 1, 
+            isPmu: type === 'pmu', 
+            isGateway: type === 'gateway', 
+            networkId: netMatch ? netMatch[1] : undefined, 
+            attributes: attrs 
+          });
         }
       }
     }
@@ -274,6 +284,11 @@ const MainView = ({ onNavigateHelp, onNavigateAdmin, isAdminMode, onNavigateConf
     if (!file) return;
     let res = file.content;
     patchJobs.forEach(job => {
+      if (job.oldSN && job.newSN) {
+        res = res.replace(new RegExp(`sn="${job.oldSN}"`, 'gi'), `sn="${job.newSN}"`);
+      }
+    });
+    gatewayJobs.forEach(job => {
       if (job.oldSN && job.newSN) {
         res = res.replace(new RegExp(`sn="${job.oldSN}"`, 'gi'), `sn="${job.newSN}"`);
       }
@@ -322,15 +337,16 @@ const MainView = ({ onNavigateHelp, onNavigateAdmin, isAdminMode, onNavigateConf
             <div className="lg:col-span-8 glass-card overflow-visible">
               <div className="flex bg-black/40 border-b border-white/10 rounded-t-3xl overflow-hidden">
                 <button onClick={() => setActiveTab('patch')} className={`flex-1 py-6 lg:py-8 text-[10px] lg:text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'patch' ? 'text-blue-400 bg-blue-500/10 border-b-2 border-blue-500' : 'text-slate-500'}`}>SN Patching</button>
+                <button onClick={() => setActiveTab('gateway')} className={`flex-1 py-6 lg:py-8 text-[10px] lg:text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'gateway' ? 'text-blue-400 bg-blue-500/10 border-b-2 border-blue-500' : 'text-slate-500'}`}>Gateway Patch</button>
                 <button onClick={() => setActiveTab('dh')} className={`flex-1 py-6 lg:py-8 text-[10px] lg:text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'dh' ? 'text-blue-400 bg-blue-500/10 border-b-2 border-blue-500' : 'text-slate-500'}`}>DH Transfer</button>
               </div>
               <div className="p-6 lg:p-12 space-y-8 min-h-[400px]">
-                {activeTab === 'patch' ? (
+                {activeTab === 'patch' && (
                   <>
                     <button onClick={() => setPatchJobs([...patchJobs, { id: Date.now(), oldSN: '', newSN: '' }])} className="w-full py-4 bg-slate-900/50 border border-slate-700 text-blue-400 font-black rounded-xl uppercase text-xs tracking-widest hover:brightness-125 transition-all shadow-xl">+ SN-Tausch hinzufügen</button>
                     {patchJobs.map(j => (
                       <div key={j.id} className="bg-black/40 p-6 rounded-2xl border border-white/5 flex flex-col lg:flex-row items-center gap-6">
-                        <div className="flex-1 w-full"><SearchableSelect options={serialOptions} value={j.oldSN} onChange={v => setPatchJobs(patchJobs.map(p => p.id === j.id ? {...p, oldSN: v} : p))} label="Quelle (Datei)" /></div>
+                        <div className="flex-1 w-full"><SearchableSelect options={serialOptions.filter(o => o.isPmu)} value={j.oldSN} onChange={v => setPatchJobs(patchJobs.map(p => p.id === j.id ? {...p, oldSN: v} : p))} label="Quelle (Datei)" /></div>
                         <ArrowRight className="hidden lg:block text-slate-700" />
                         <div className="flex-1 w-full">
                           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Ersatz (Neu)</label>
@@ -340,14 +356,31 @@ const MainView = ({ onNavigateHelp, onNavigateAdmin, isAdminMode, onNavigateConf
                       </div>
                     ))}
                   </>
-                ) : (
+                )}
+                {activeTab === 'gateway' && (
+                  <>
+                    <button onClick={() => setGatewayJobs([...gatewayJobs, { id: Date.now(), oldSN: '', newSN: '' }])} className="w-full py-4 bg-slate-900/50 border border-slate-700 text-emerald-400 font-black rounded-xl uppercase text-xs tracking-widest hover:brightness-125 transition-all shadow-xl">+ Gateway-Tausch hinzufügen</button>
+                    {gatewayJobs.map(j => (
+                      <div key={j.id} className="bg-black/40 p-6 rounded-2xl border border-white/5 flex flex-col lg:flex-row items-center gap-6">
+                        <div className="flex-1 w-full"><SearchableSelect options={serialOptions.filter(o => o.isGateway)} value={j.oldSN} onChange={v => setGatewayJobs(gatewayJobs.map(p => p.id === j.id ? {...p, oldSN: v} : p))} label="Gateway (Datei)" /></div>
+                        <ArrowRight className="hidden lg:block text-slate-700" />
+                        <div className="flex-1 w-full">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Ersatz (Neu)</label>
+                          <input type="text" value={j.newSN} onChange={e => setGatewayJobs(gatewayJobs.map(p => p.id === j.id ? {...p, newSN: e.target.value.toUpperCase()} : p))} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono outline-none focus:border-blue-500" placeholder="SN..." />
+                        </div>
+                        <button onClick={() => setGatewayJobs(gatewayJobs.filter(p => p.id !== j.id))} className="text-slate-700 hover:text-red-500"><Trash2 size={20}/></button>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {activeTab === 'dh' && (
                   <>
                     <button onClick={() => setDhJobs([...dhJobs, { id: Date.now(), sourceSN: '', targetSN: '' }])} className="w-full py-4 bg-slate-900/50 border border-slate-700 text-blue-400 font-black rounded-xl uppercase text-xs tracking-widest hover:brightness-125 transition-all shadow-xl">+ DH-Transfer hinzufügen</button>
                     {dhJobs.map(j => (
                       <div key={j.id} className="bg-black/40 p-6 rounded-2xl border border-white/5 flex flex-col lg:flex-row items-center gap-6">
-                        <div className="flex-1 w-full"><SearchableSelect options={serialOptions} value={j.sourceSN} onChange={v => setDhJobs(dhJobs.map(d => d.id === j.id ? {...d, sourceSN: v} : d))} label="Quelle (Kalibrierung)" /></div>
+                        <div className="flex-1 w-full"><SearchableSelect options={serialOptions.filter(o => o.isPmu)} value={j.sourceSN} onChange={v => setDhJobs(dhJobs.map(d => d.id === j.id ? {...d, sourceSN: v} : d))} label="Quelle (Kalibrierung)" /></div>
                         <Zap className="hidden lg:block text-blue-500 opacity-40" />
-                        <div className="flex-1 w-full"><SearchableSelect options={serialOptions} value={j.targetSN} onChange={v => setDhJobs(dhJobs.map(d => d.id === j.id ? {...d, targetSN: v} : d))} label="Ziel (Übernahme)" /></div>
+                        <div className="flex-1 w-full"><SearchableSelect options={serialOptions.filter(o => o.isPmu)} value={j.targetSN} onChange={v => setDhJobs(dhJobs.map(d => d.id === j.id ? {...d, targetSN: v} : d))} label="Ziel (Übernahme)" /></div>
                         <button onClick={() => setDhJobs(dhJobs.filter(d => d.id !== j.id))} className="text-slate-700 hover:text-red-500"><Trash2 size={20}/></button>
                       </div>
                     ))}
